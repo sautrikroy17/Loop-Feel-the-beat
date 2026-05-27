@@ -1,0 +1,402 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* ── Loop: deep navy luxury cinematic ───────────────────────── */
+  --background:           oklch(0.045 0.024 258);
+  --foreground:           oklch(0.96 0.008 260);
+  --card:                 oklch(0.09 0.026 262 / 72%);
+  --card-foreground:      oklch(0.96 0.008 260);
+  --popover:              oklch(0.08 0.022 262);
+  --popover-foreground:   oklch(0.96 0.008 260);
+  --primary:              oklch(0.72 0.24 252);  /* electric blue */
+  --primary-foreground:   oklch(0.06 0.02 255);
+  --secondary:            oklch(0.13 0.030 260);
+  --secondary-foreground: oklch(0.96 0.008 260);
+  --muted:                oklch(0.12 0.026 262);
+  --muted-foreground:     oklch(0.52 0.028 262);
+  --accent:               oklch(0.68 0.22 282);  /* soft violet */
+  --accent-foreground:    oklch(0.06 0.02 270);
+  --destructive:          oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0.003 270);
+  --border:               oklch(1 0 0 / 7%);
+  --input:                oklch(1 0 0 / 8%);
+  --ring:                 oklch(0.72 0.24 252);
+
+  /* Charts */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* Sidebar */
+  --sidebar:                  oklch(0.07 0.020 262);
+  --sidebar-foreground:       oklch(0.96 0.008 260);
+  --sidebar-primary:          oklch(0.72 0.24 252);
+  --sidebar-primary-foreground: oklch(0.06 0.02 255);
+  --sidebar-accent:           oklch(0.13 0.030 260);
+  --sidebar-accent-foreground: oklch(0.96 0.008 260);
+  --sidebar-border:           oklch(1 0 0 / 7%);
+  --sidebar-ring:             oklch(0.72 0.24 252);
+
+  /* ── Loop signature tokens ───────────────────────────────────── */
+  /* Primary: electric blue  Secondary: soft violet  Accent: cyan  */
+  --loop-blue:    oklch(0.72 0.26 248);   /* electric blue */
+  --loop-violet:  oklch(0.68 0.24 286);   /* soft violet */
+  --loop-cyan:    oklch(0.80 0.18 208);   /* cyan highlight */
+  --loop-navy:    oklch(0.045 0.024 258); /* deep background */
+  --loop-glass:   oklch(0.10 0.028 262 / 65%);
+
+  --gradient-aurora:      linear-gradient(135deg, oklch(0.72 0.26 248) 0%, oklch(0.68 0.24 286) 55%, oklch(0.80 0.18 208) 100%);
+  --gradient-radial-glow: radial-gradient(ellipse at center, oklch(0.68 0.24 286 / 28%) 0%, transparent 70%);
+  --shadow-glow:          0 0 70px -10px oklch(0.72 0.26 248 / 55%);
+  --shadow-cinema:        0 32px 80px -20px oklch(0 0 0 / 80%), 0 0 50px -20px oklch(0.68 0.24 286 / 28%);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    color: var(--color-foreground);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.04em;
+  }
+  .text-gradient {
+    background: var(--gradient-aurora);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glass {
+    background: oklch(0.10 0.028 260 / 48%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 8%);
+  }
+  .glass-strong {
+    background: oklch(0.08 0.032 260 / 72%);
+    backdrop-filter: blur(36px) saturate(200%);
+    -webkit-backdrop-filter: blur(36px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 10%);
+  }
+  /* Neon-glass: used on nav, cards that want the electric blue accent glow */
+  .glass-blue {
+    background: oklch(0.08 0.030 258 / 60%);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid oklch(0.72 0.26 248 / 14%);
+    box-shadow: 0 0 0 1px oklch(0.72 0.26 248 / 6%) inset;
+  }
+  .glow-primary {
+    box-shadow: 0 0 60px -8px oklch(0.72 0.26 248 / 60%);
+  }
+  .glow-violet {
+    box-shadow: 0 0 60px -8px oklch(0.68 0.24 286 / 55%);
+  }
+  .noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+
+@keyframes loop-float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-30px) translateX(20px); }
+}
+@keyframes loop-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.05); }
+  66% { transform: translate(-30px, 20px) scale(0.95); }
+}
+@keyframes loop-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+@keyframes loop-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+/* Used by CinematicLyrics skeleton */
+@keyframes pulse {
+  0%, 100% { opacity: 0.055; }
+  50%       { opacity: 0.14; }
+}
+.animate-float { animation: loop-float 8s ease-in-out infinite; }
+.animate-drift { animation: loop-drift 14s ease-in-out infinite; }
+.animate-pulse-soft { animation: loop-pulse 4s ease-in-out infinite; }
+.animate-marquee { animation: loop-marquee 40s linear infinite; }
+
+/* EQ bar animation — used in Hero now-playing badge and track cards */
+@keyframes loop-eq {
+  0%   { height: 3px; }
+  100% { height: 14px; }
+}
+
+/* Hide scrollbars globally for overflow-x scroll rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Ambient background orb drift (CSS-only, zero JS) ── */
+@keyframes amb-drift-a {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  25%       { transform: translate(8%,   4%)   scale(1.08); }
+  50%       { transform: translate(4%,   8%)   scale(0.95); }
+  75%       { transform: translate(-4%,  5%)   scale(1.04); }
+}
+@keyframes amb-drift-b {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  30%       { transform: translate(-7%,  5%)   scale(0.93); }
+  60%       { transform: translate(5%,  -6%)   scale(1.07); }
+  80%       { transform: translate(3%,   3%)   scale(0.97); }
+}
+@keyframes amb-drift-c {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  40%       { transform: translate(5%,  -5%)   scale(1.10); }
+  70%       { transform: translate(-5%,  3%)   scale(0.94); }
+}
+
+/* ── Premium range input reset ── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  background: transparent;
+}
+input[type="range"]::-moz-range-track {
+  background: transparent;
+}
+
+/* ── Refined global body ── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* ── Text selection ── */
+::selection {
+  background: oklch(0.72 0.23 290 / 0.35);
+  color: white;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SMOOTH TRANSITION SYSTEM — buttery 60fps feel
+   ═══════════════════════════════════════════════════════ */
+
+/* Custom easing curves */
+:root {
+  --ease-spring:   cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-expo:  cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout:    cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-silk:     cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* GPU compositing on heavy elements only */
+canvas,
+.glass,
+.glass-strong,
+.glass-blue {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Global interactive element transitions */
+button, a, input, select, [role="button"], [role="tab"] {
+  transition:
+    color           180ms var(--ease-silk),
+    background      180ms var(--ease-silk),
+    border-color    180ms var(--ease-silk),
+    box-shadow      200ms var(--ease-silk),
+    opacity         160ms var(--ease-silk),
+    transform       160ms var(--ease-out-expo);
+}
+
+button:active, [role="button"]:active {
+  transition-duration: 80ms;
+}
+
+/* Hover lift on interactive cards */
+.card-hover {
+  transition:
+    transform       220ms var(--ease-out-expo),
+    box-shadow      220ms var(--ease-out-expo),
+    background      180ms var(--ease-silk);
+}
+.card-hover:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 16px 48px -8px oklch(0 0 0 / 55%);
+}
+
+/* Smooth image loading */
+img {
+  transition: opacity 300ms var(--ease-silk);
+}
+
+/* Scrollbar — minimal, premium */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.22 0.04 260) transparent;
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.22 0.04 260);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.32 0.06 260);
+}
+
+/* Smooth page transitions via @view-transition */
+@view-transition { navigation: auto; }
+
+/* ── Framer Motion performance hints ── */
+/* Removed dangerous global will-change selectors that caused compositor layer explosion */
+
+/* ── Ambient orb transition override — smoother drift ── */
+@keyframes amb-drift-a {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  25%       { transform: translate(6%,   3%)   scale(1.06); }
+  50%       { transform: translate(3%,   6%)   scale(0.96); }
+  75%       { transform: translate(-3%,  4%)   scale(1.03); }
+}
+@keyframes amb-drift-b {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  30%       { transform: translate(-5%,  4%)   scale(0.95); }
+  60%       { transform: translate(4%,  -5%)   scale(1.05); }
+  80%       { transform: translate(2%,   2%)   scale(0.98); }
+}
+@keyframes amb-drift-c {
+  0%, 100% { transform: translate(0,    0)    scale(1.00); }
+  40%       { transform: translate(4%,  -4%)   scale(1.08); }
+  70%       { transform: translate(-4%,  2%)   scale(0.95); }
+}
+
+/* ── Focus ring — premium ── */
+:focus-visible {
+  outline: 2px solid oklch(0.72 0.26 248 / 0.70);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
