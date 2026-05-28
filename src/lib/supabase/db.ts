@@ -266,27 +266,29 @@ export async function uploadAvatar(userId: string, file: File): Promise<string |
 // ── Cloud Playback Restoration ──────────────────────────────────────
 
 export async function saveCloudPlaybackState(userId: string, state: any): Promise<void> {
-  // We repurpose listening_status to store JSON stringified state
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({ listening_status: JSON.stringify(state) })
-    .eq('id', userId);
+  // To avoid RLS issues and DB schema mismatches, we store the playback snapshot 
+  // in the user's auth metadata. We intentionally omit the 'queue' array to prevent 
+  // hitting the 8KB user metadata size limit.
+  const lightweightState = {
+    currentTrack: state.currentTrack,
+    progress: state.progress,
+    isShuffle: state.isShuffle,
+    repeatMode: state.repeatMode,
+  };
+
+  const { error } = await supabase.auth.updateUser({
+    data: { playback_state: lightweightState }
+  });
   
-  if (error) console.error('[db] saveCloudPlaybackState:', error.message);
+  if (error) console.error('[db] saveCloudPlaybackState metadata error:', error.message);
 }
 
 export async function loadCloudPlaybackState(userId: string): Promise<any | null> {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('listening_status')
-    .eq('id', userId)
-    .single();
+  const { data, error } = await supabase.auth.getUser();
 
-  if (error || !data?.listening_status) return null;
-
-  try {
-    return JSON.parse(data.listening_status);
-  } catch (e) {
+  if (error || !data?.user?.user_metadata?.playback_state) {
     return null;
   }
+
+  return data.user.user_metadata.playback_state;
 }
