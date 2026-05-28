@@ -218,7 +218,7 @@ export const getAlbumDetailsFn = createServerFn({ method: 'GET' })
       const tracks = await getAlbumDetails(albumId);
       return tracks.map(ytmToLoop).map(t => ({
         ...t,
-        artist: t.artist || fallbackArtist || 'Unknown Artist',
+        artist: (!t.artist || t.artist === 'Unknown Artist' || t.artist === 'Unknown') ? (fallbackArtist || 'Unknown Artist') : t.artist,
         albumArt: t.albumArt || fallbackArt || ''
       }));
     } catch (err) {
@@ -239,7 +239,7 @@ export const getPlaylistDetailsFn = createServerFn({ method: 'GET' })
       const tracks = await getPlaylistDetails(playlistId);
       return tracks.map(ytmToLoop).map(t => ({
         ...t,
-        artist: t.artist || fallbackArtist || 'Unknown Artist',
+        artist: (!t.artist || t.artist === 'Unknown Artist' || t.artist === 'Unknown') ? (fallbackArtist || 'Unknown Artist') : t.artist,
         albumArt: t.albumArt || fallbackArt || ''
       }));
     } catch (err) {

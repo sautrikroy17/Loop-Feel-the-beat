@@ -296,7 +296,7 @@ export const getAlbumDetailsFn = createServerFn({ method: 'GET' })
     const tracks = await getAlbumDetails(browseId);
     return tracks.map(toTrack).map(t => ({
       ...t,
-      artist: t.artist || fallbackArtist || 'Unknown Artist',
+      artist: (!t.artist || t.artist === 'Unknown Artist' || t.artist === 'Unknown') ? (fallbackArtist || 'Unknown Artist') : t.artist,
       albumArt: t.albumArt || fallbackArt || ''
     }));
   });
