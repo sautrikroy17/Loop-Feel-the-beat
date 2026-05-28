@@ -85,9 +85,11 @@ export function AudioEngine() {
             }
 
             if (event.data === YTState.UNSTARTED || event.data === YTState.CUED) {
-              // During transition, always force play (isPlaying may be stale/false).
-              // Otherwise, only play if isPlaying is actually true.
-              if (isTransitioningRef.current || usePlayback.getState().isPlaying) {
+              // Only force-play if the user actually intends to play.
+              // DO NOT check isTransitioningRef here — that flag is only for
+              // suppressing stale PAUSED events, not for forcing playback.
+              // This prevents the restored track from auto-playing on page load.
+              if (usePlayback.getState().isPlaying) {
                 playerRef.current?.playVideo?.();
               }
             }
