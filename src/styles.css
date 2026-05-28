@@ -422,3 +422,97 @@ img {
   outline-offset: 3px;
   border-radius: 6px;
 }
+
+/* ════════════════════════════════════════════════════════════
+   PHONE / PWA — MOBILE ONLY STYLES
+   All rules below use touch/mobile media queries.
+   Desktop is completely unaffected.
+   ════════════════════════════════════════════════════════════ */
+
+/* Prevent double-tap zoom on all interactive elements — mobile only */
+@media (pointer: coarse) {
+  * {
+    touch-action: manipulation;
+  }
+
+  /* Minimum 44px tap targets — Apple HIG / Material guidelines */
+  button,
+  [role="button"],
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* No rubber-band bounce on iOS — feels more native */
+  html, body {
+    overscroll-behavior: none;
+  }
+}
+
+/* Safe area insets — iPhone notch, Dynamic Island, home indicator bar */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (max-width: 768px) {
+    /* Main app body respects the notch at top */
+    body {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    /* Player bar sits above the iOS home indicator at the bottom */
+    .player-bar-safe {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+    }
+
+    /* Modals and full-screen overlays */
+    .modal-safe-top {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .modal-safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}
+
+/* PWA standalone mode — when launched from home screen */
+@media (display-mode: standalone) {
+  /* Hide any scroll bars — feels completely native */
+  * {
+    scrollbar-width: none !important;
+  }
+  *::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Body takes full screen — no browser chrome */
+  body {
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  /* Status bar area at top — keep it pitch black */
+  html {
+    background-color: #000;
+  }
+}
+
+/* Smooth momentum scrolling on iOS for all scroll containers */
+@media (max-width: 768px) {
+  .overflow-y-auto,
+  .overflow-auto,
+  [style*="overflow"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Slightly larger text for readability on small screens */
+  .text-\[11px\] { font-size: 12px; }
+  .text-\[12px\] { font-size: 13px; }
+
+  /* Better spacing on search modal for keyboards */
+  input[type="search"],
+  input[type="text"] {
+    font-size: 16px; /* Prevents iOS auto-zoom on focus */
+  }
+}
+

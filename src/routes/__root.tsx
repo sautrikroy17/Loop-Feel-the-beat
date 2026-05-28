@@ -75,22 +75,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Loop — Beyond Limits" },
-      { name: "description", content: "Loop is an immersive music universe. Lossless spatial audio, AI discovery, and a cinematic listening experience built for a new generation." },
+      // Mobile viewport — prevents zoom on input focus, covers safe areas
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "Loop — Feel the Waves" },
+      { name: "description", content: "Loop is a mood-driven music platform built for the next generation of listeners." },
       { name: "author", content: "Loop" },
-      { property: "og:title", content: "Loop — Beyond Limits" },
-      { property: "og:description", content: "An immersive, cinematic music platform. Feel sound, don't just hear it." },
+      // PWA theme color — matches app black background
+      { name: "theme-color", content: "#000000" },
+      { name: "msapplication-TileColor", content: "#000000" },
+      // iOS PWA — fullscreen standalone mode
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Loop" },
+      // OG / Social
+      { property: "og:title", content: "Loop — Feel the Waves" },
+      { property: "og:description", content: "A mood-driven music platform. Feel sound, don't just hear it." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@loop" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
+      // iOS home screen icon
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+      // PWA manifest
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -125,6 +135,15 @@ function RootComponent() {
   useEffect(() => {
     const unsubscribe = initAuthListener();
     return () => unsubscribe();
+  }, []);
+
+  // Register Service Worker for PWA (offline shell caching + Add to Home Screen)
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+        // SW registration is best-effort — silently fail
+      });
+    }
   }, []);
 
   return (

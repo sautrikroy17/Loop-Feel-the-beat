@@ -334,6 +334,37 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
     seekTo((p / 100) * duration);
   }, [duration, seekTo]);
 
+  // ── Media Session API — Lock Screen & AirPods Controls ─────────
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentTrack) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title || 'Unknown Track',
+      artist: currentTrack.artist || 'Unknown Artist',
+      album: 'Loop',
+      artwork: currentTrack.albumArt
+        ? [
+            { src: currentTrack.albumArt, sizes: '512x512', type: 'image/jpeg' },
+            { src: currentTrack.albumArt, sizes: '192x192', type: 'image/jpeg' },
+          ]
+        : [],
+    });
+
+    navigator.mediaSession.setActionHandler('play',         () => { if (!isPlaying) togglePlayPause(); });
+    navigator.mediaSession.setActionHandler('pause',        () => { if (isPlaying)  togglePlayPause(); });
+    navigator.mediaSession.setActionHandler('nexttrack',    () => nextTrack());
+    navigator.mediaSession.setActionHandler('previoustrack',() => prevTrack());
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined) seekTo(details.seekTime);
+    });
+
+    return () => {
+      (['play','pause','nexttrack','previoustrack','seekto'] as MediaSessionAction[]).forEach(
+        action => { try { navigator.mediaSession.setActionHandler(action, null); } catch {} }
+      );
+    };
+  }, [currentTrack, isPlaying, togglePlayPause, nextTrack, prevTrack, seekTo]);
+
   return (
     <AnimatePresence>
       {currentTrack && (
@@ -343,7 +374,7 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.05]"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.05] player-bar-safe"
           style={{
             background: 'oklch(0.07 0.024 260 / 0.96)',
             backdropFilter: 'blur(40px) saturate(180%)',
