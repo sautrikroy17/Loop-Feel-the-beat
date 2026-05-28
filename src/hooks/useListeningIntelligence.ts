@@ -94,6 +94,7 @@ interface IntelligenceState {
   markSkip: (trackId: string) => void;
   markRepeat: (trackId: string) => void;
   markCompleted: (trackId: string) => void;
+  hydrateFromCloudHistory: (tracks: any[]) => void;
   reset: () => void;
 
   // Derived (computed getters)
@@ -160,9 +161,46 @@ export const useListeningIntelligence = create<IntelligenceState>()(
       markCompleted: (trackId) =>
         set((s) => ({
           events: s.events.map((e) =>
-            e.trackId === trackId ? { ...e, completed: true } : e
+            e.trackId === trackId && !e.completed ? { ...e, completed: true } : e
           ),
         })),
+
+      hydrateFromCloudHistory: (tracks) => {
+        set((s) => {
+          // Only hydrate if we don't already have extensive local history
+          if (s.events.length > 20) return s;
+
+          let gw = { ...s.genreWeights };
+          let aw = { ...s.artistWeights };
+          
+          const newEvents: PlayEvent[] = tracks.map((t: any, i) => {
+            const genres = inferGenres(t.title, t.artist);
+            // Give them a flat positive score for being in history
+            for (const g of genres) gw[g] = (gw[g] ?? 0) + 1;
+            
+            const artistKey = t.artist.split(/[,&]/)[0].trim().toLowerCase();
+            aw[artistKey] = (aw[artistKey] ?? 0) + 1;
+
+            return {
+              trackId: t.id,
+              title: t.title,
+              artist: t.artist,
+              genres,
+              timestamp: Date.now() - i * 60000, // fake times
+              listenMs: t.durationMs || 180000,
+              completed: true,
+              skipped: false,
+              repeated: false,
+              liked: false
+            };
+          });
+
+          // Merge without exceeding max events
+          const merged = [...s.events, ...newEvents].slice(0, MAX_EVENTS);
+          
+          return { events: merged, genreWeights: gw, artistWeights: aw };
+        });
+      },
 
       reset: () => set({ events: [], genreWeights: {}, artistWeights: {} }),
 

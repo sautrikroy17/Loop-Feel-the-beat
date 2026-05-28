@@ -71,6 +71,23 @@ export const initAuthListener = () => {
     }
   });
 
+  // Auto-sync when the app comes back to the foreground (mobile resume / tab switch)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        const { session } = useAuth.getState();
+        if (session?.user) {
+          import('./useUserProfile').then(({ useUserProfile }) => {
+            useUserProfile.getState().loadFromCloud(
+              session.user.id,
+              session.user.user_metadata?.avatar_url,
+            );
+          });
+        }
+      }
+    });
+  }
+
   return () => {
     subscription.unsubscribe();
   };

@@ -311,6 +311,13 @@ export const useUserProfile = create<UserProfileState>()(
             customAvatarUrl: avatarUrl,
           });
 
+          // Hydrate the local AI intelligence engine with cross-device cloud history
+          if (dbRecent.length > 0) {
+            import('./useListeningIntelligence').then(({ useListeningIntelligence }) => {
+              useListeningIntelligence.getState().hydrateFromCloudHistory(dbRecent);
+            });
+          }
+
         } catch (err) {
           console.error('[useUserProfile] loadFromCloud failed:', err);
         } finally {
