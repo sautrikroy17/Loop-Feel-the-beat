@@ -94,7 +94,7 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
           className="mb-10 inline-flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.38em] text-white/35 backdrop-blur-sm"
         >
           <span className="h-1 w-1 rounded-full bg-[oklch(0.72_0.26_248)] shadow-[0_0_6px_oklch(0.72_0.26_248)]" />
-          Feel every beat. Every drop. Every night.
+          When the right track finds you.
         </motion.p>
 
         {/* Main headline */}
@@ -120,7 +120,7 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
               color: 'transparent',
             }}
           >
-          Beat
+          Drop
           </motion.span>
         </h1>
 
@@ -131,9 +131,9 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
           transition={{ duration: 1.3, delay: 0.50, ease }}
           className="mx-auto mt-8 max-w-lg text-[15px] leading-[1.8] text-white/32"
         >
-          Search any track, remix, or underground find.
+          Any track. Any vibe. Any hour of the night.
           <br />
-          <span className="text-white/22">Synced lyrics · Smart recommendations · No ads.</span>
+          <span className="text-white/22">Synced lyrics · Smart taste-matching · No ads. Ever.</span>
         </motion.p>
 
         {/* CTAs */}
@@ -158,7 +158,7 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
               className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-500 group-hover:translate-x-full"
             />
             <SearchIcon />
-            Start Listening
+            Drop Into Music
             <kbd className="hidden rounded border border-white/20 bg-black/20 px-2 py-0.5 text-[10px] font-normal tracking-wide sm:inline-block">
               ⌘K
             </kbd>
@@ -169,7 +169,7 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
             href="#discover"
             className="flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.03] px-8 py-3.5 text-sm font-medium text-white/45 transition-colors hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-white/70"
           >
-            Explore
+            What's dropping
           </a>
         </motion.div>
 
