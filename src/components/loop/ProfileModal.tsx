@@ -62,6 +62,32 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+/**
+ * Compress an image file to a base64 JPEG using the canvas API.
+ * @param maxSize - max width/height in px (default 240)
+ * @param quality - JPEG quality 0-1 (default 0.80)
+ */
+function compressImageToBase64(file: File, maxSize = 240, quality = 0.80): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 // ── Empty State ───────────────────────────────────────────────────
 
 function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
@@ -572,7 +598,7 @@ function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: ()
 
 function ProfileTab({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
-  const { recentlyPlayed, likedTracks, customAvatarUrl, updateAvatar } = useUserProfile();
+  const { recentlyPlayed, customAvatarUrl, setCustomAvatarUrl } = useUserProfile();
   const { playTrack } = usePlayback();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -619,18 +645,21 @@ function ProfileTab({ onClose }: { onClose: () => void }) {
   const handleUpdateAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    if (!file.type.startsWith('image/')) return;
     setUploading(true);
     try {
-      // Upload to Supabase Storage → stores URL in user_profiles table
-      const url = await updateAvatar(file, user.id);
-      if (!url) {
-        // Fallback: store as data URL in auth metadata (if storage bucket not set up)
-        const { readFileAsDataUrl: readFn } = await Promise.resolve({ readFileAsDataUrl });
-        const dataUrl = await readFn(file);
-        const { supabase } = await import('@/lib/supabase/client');
-        await supabase.auth.updateUser({ data: { avatar_url: dataUrl } });
-        await supabase.auth.refreshSession();
-      }
+      // Compress image using canvas → max 240×240px JPEG at 80% quality
+      // Keeps file size ~20-50KB, safe for Postgres text column
+      const compressed = await compressImageToBase64(file, 240, 0.80);
+
+      // Save to user_profiles table (syncs across all browsers)
+      const { upsertUserProfile } = await import('@/lib/supabase/db');
+      await upsertUserProfile(user.id, { avatar_url: compressed });
+
+      // Update local state immediately (no page reload needed)
+      setCustomAvatarUrl(compressed);
+    } catch (err) {
+      console.error('[avatar] upload failed:', err);
     } finally {
       setUploading(false);
       e.target.value = '';

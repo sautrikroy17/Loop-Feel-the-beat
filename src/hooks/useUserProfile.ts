@@ -55,6 +55,9 @@ interface UserProfileState {
   reorderPlaylist:         (id: string, startIndex: number, endIndex: number) => void;
   clearHistory:            () => void;
 
+  // Avatar
+  setCustomAvatarUrl:      (url: string | null) => void;
+
   // Cloud sync
   loadFromCloud:   (userId: string, googleAvatarUrl?: string) => Promise<void>;
   clearLocalData:  () => void;
@@ -218,6 +221,8 @@ export const useUserProfile = create<UserProfileState>()(
         })),
 
       clearHistory: () => set({ recentlyPlayed: [] }),
+
+      setCustomAvatarUrl: (url) => set({ customAvatarUrl: url }),
 
       // ── Cloud Sync ───────────────────────────────────────────────────
 
