@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { getRecommendationsFn } from '@/functions/search';
 
 export interface Track {
@@ -304,4 +305,17 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
       set({ isAutoQueuing: false, isPlaying: false });
     }
   },
+}), {
+  name: 'loop-playback-storage',
+  partialize: (state) => ({
+    currentTrack: state.currentTrack,
+    queue: state.queue,
+    history: state.history,
+    volume: state.volume,
+    progress: state.progress,
+    isShuffle: state.isShuffle,
+    repeatMode: state.repeatMode,
+    isAutoplay: state.isAutoplay,
+    // explicitly exclude isPlaying, isLoadingTrack, youtubePlayerReady
+  })
 }));
