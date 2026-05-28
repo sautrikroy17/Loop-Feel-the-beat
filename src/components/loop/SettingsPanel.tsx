@@ -15,7 +15,7 @@ import {
   Moon, Volume2, Infinity, Mic2, Eye,
 } from 'lucide-react';
 import { useSettings, EQ_PRESETS } from '@/hooks/useSettings';
-import { useListeningIntelligence, MOOD_EQ_PRESETS } from '@/hooks/useListeningIntelligence';
+import { useListeningIntelligence } from '@/hooks/useListeningIntelligence';
 import { usePlayback } from '@/hooks/usePlayback';
 
 // ── EQ band labels ─────────────────────────────────────────────────
@@ -185,9 +185,7 @@ export function SettingsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const { toggleAutoplay, isAutoplay } = usePlayback();
 
   const intel       = useListeningIntelligence();
-  const mood        = intel.getCurrentMood();
-  const suggestedEQ = MOOD_EQ_PRESETS[mood] ?? 'flat';
-  const showSuggest = eqEnabled && suggestedEQ !== eqPreset && suggestedEQ !== 'flat';
+  const showSuggest = false; // Removed mood-based suggestions
 
   // Local UI state for settings not yet in the store
   const [audioQuality, setAudioQuality] = useState<'low' | 'normal' | 'high' | 'max'>('high');

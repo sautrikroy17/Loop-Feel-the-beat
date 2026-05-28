@@ -37,17 +37,7 @@ export interface PlayEvent {
   liked: boolean;
 }
 
-export type MoodLabel =
-  | 'focus'
-  | 'chill'
-  | 'night-drive'
-  | 'party'
-  | 'emotional'
-  | 'gym'
-  | 'underground'
-  | 'morning'
-  | 'discovery'
-  | 'balanced';
+
 
 export interface ListeningStats {
   totalTracks: number;
@@ -86,79 +76,7 @@ export function inferGenres(title: string, artist: string): string[] {
   return found.length > 0 ? found : ['pop'];
 }
 
-// ── Mood detection from context ────────────────────────────────────
 
-export function detectMood(
-  recentGenres: string[],
-  hourOfDay: number,
-  dayOfWeek: number,       // 0=Sun … 6=Sat
-  recentSkipRate: number,  // 0–1
-): MoodLabel {
-  const isWeekend  = dayOfWeek === 0 || dayOfWeek === 6;
-  const isLateNight = hourOfDay >= 23 || hourOfDay < 4;
-  const isNight    = hourOfDay >= 20 || hourOfDay < 4;
-  const isMorning  = hourOfDay >= 5 && hourOfDay < 10;
-  const isAfternoon = hourOfDay >= 10 && hourOfDay < 17;
-
-  const genreSet = new Set(recentGenres);
-
-  // Genre-based overrides
-  if (genreSet.has('lofi') || genreSet.has('classical') || genreSet.has('jazz'))
-    return recentSkipRate > 0.5 ? 'discovery' : 'focus';
-  if (genreSet.has('phonk') || genreSet.has('trap') || genreSet.has('metal'))
-    return isWeekend ? 'party' : 'gym';
-  if (genreSet.has('slowed') || genreSet.has('indie'))
-    return isNight ? 'emotional' : 'chill';
-  if (genreSet.has('synthwave') || genreSet.has('house'))
-    return isLateNight ? 'night-drive' : isWeekend ? 'party' : 'chill';
-  if (genreSet.has('rnb') && isNight) return 'emotional';
-
-  // Time-based fallbacks
-  if (isLateNight) return 'night-drive';
-  if (isMorning)   return 'morning';
-  if (isAfternoon && recentSkipRate > 0.4) return 'discovery';
-  if (recentGenres.some(g => ['underground', 'phonk', 'slowed'].includes(g)))
-    return 'underground';
-
-  return 'balanced';
-}
-
-// ── Mood → search query vocabulary ────────────────────────────────
-
-const MOOD_QUERIES: Record<MoodLabel, string[]> = {
-  focus:       ['lofi beats study focus', 'ambient instrumental focus', 'piano concentration music'],
-  chill:       ['chill vibes playlist', 'relaxing melodic music', 'smooth evening music'],
-  'night-drive':['night drive synthwave', 'late night dark music', 'midnight drive playlist'],
-  party:       ['party hits 2024', 'club bangers playlist', 'high energy dance music'],
-  emotional:   ['emotional songs playlist', 'sad indie music', 'heartfelt music'],
-  gym:         ['gym motivation playlist', 'workout bangers', 'high energy rap gym'],
-  underground: ['underground music gems', 'obscure hidden tracks', 'underground artists 2024'],
-  morning:     ['morning energy playlist', 'uplifting morning music', 'positive start day'],
-  discovery:   ['new music 2024 discovery', 'emerging artists playlist', 'underground finds'],
-  balanced:    ['top songs playlist', 'popular music 2024', 'feel good music'],
-};
-
-export function moodToQuery(mood: MoodLabel, topGenre?: string): string {
-  const queries = MOOD_QUERIES[mood];
-  const base = queries[Math.floor(Math.random() * queries.length)];
-  if (topGenre && !base.includes(topGenre)) return `${topGenre} ${base}`;
-  return base;
-}
-
-// ── EQ preset suggestions based on mood ────────────────────────────
-
-export const MOOD_EQ_PRESETS: Record<MoodLabel, string> = {
-  focus:        'vocal',
-  chill:        'acoustic',
-  'night-drive':'night-drive',
-  party:        'club',
-  emotional:    'vocal',
-  gym:          'bass-boost',
-  underground:  'midnight',
-  morning:      'pop',
-  discovery:    'spatial',
-  balanced:     'flat',
-};
 
 // ── Zustand store ─────────────────────────────────────────────────
 
@@ -177,8 +95,7 @@ interface IntelligenceState {
   // Derived (computed getters)
   getTopGenres: (n?: number) => string[];
   getTopArtists: (n?: number) => string[];
-  getCurrentMood: () => MoodLabel;
-  getVibeQuerySeed: () => { artist: string; genre: string; mood: MoodLabel; moodQuery: string };
+  getVibeQuerySeed: () => { artist: string; genre: string };
   getStats: () => ListeningStats;
   getRecentArtists: (n?: number) => string[];
 }
@@ -267,28 +184,13 @@ export const useListeningIntelligence = create<IntelligenceState>()(
         return result;
       },
 
-      getCurrentMood: () => {
-        const { events } = get();
-        const now = new Date();
-        const recentGenres = events
-          .slice(0, 10)
-          .flatMap((e) => e.genres);
-        const recentSkips = events.slice(0, 10).filter((e) => e.skipped).length;
-        const skipRate = events.slice(0, 10).length > 0
-          ? recentSkips / events.slice(0, 10).length : 0;
-        return detectMood(recentGenres, now.getHours(), now.getDay(), skipRate);
-      },
-
       getVibeQuerySeed: () => {
         const s = get();
-        const mood    = s.getCurrentMood();
         const topG    = s.getTopGenres(1)[0] ?? 'pop';
         const topA    = s.getTopArtists(1)[0] ?? '';
         return {
           artist:     topA,
           genre:      topG,
-          mood,
-          moodQuery:  moodToQuery(mood, topG),
         };
       },
 

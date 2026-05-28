@@ -11,7 +11,7 @@ export async function saveProfileFn() {
   const intel = useListeningIntelligence.getState();
   const topArtists = intel.getTopArtists(10);
   const topGenres = intel.getTopGenres(10);
-  const moodHistory = intel.getCurrentMood(); // storing current as basic history for now
+  const moodHistory = intel.getTopGenres(1)[0]; // storing current top genre as basic history for now
 
   try {
     await (supabase as any).from('user_profiles').upsert({

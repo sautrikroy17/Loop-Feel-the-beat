@@ -42,10 +42,11 @@ export function useDiscovery() {
 
   useEffect(() => {
     const trackId  = currentTrack?.youtubeId ?? currentTrack?.id ?? null;
-    const mood     = intel.getCurrentMood();
+    const topGenre = intel.getTopGenres(1)[0] ?? 'pop';
     const vibe     = intel.getVibeQuerySeed();
-    // Cache key includes mood so re-fetches when mood changes significantly
-    const cacheKey = `${trackId ?? '__default__'}:${mood}`;
+    
+    // Cache key includes top genre so re-fetches when taste changes significantly
+    const cacheKey = `${trackId ?? '__default__'}:${topGenre}`;
 
     if (cacheKey === prevKey.current && hasLoaded) return;
     prevKey.current = cacheKey;
@@ -65,8 +66,6 @@ export function useDiscovery() {
         topGenres:     intel.getTopGenres(5),
         topArtists:    intel.getTopArtists(5),
         recentArtists: intel.getRecentArtists(3),
-        mood,
-        moodQuery:     vibe.moodQuery,
         genre:         vibe.genre,
       },
     })
@@ -77,7 +76,7 @@ export function useDiscovery() {
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, [currentTrack?.id, intel.getCurrentMood()]);
+  }, [currentTrack?.id, intel.getTopGenres(1)[0]]);
 
   return { sections, isLoading, hasLoaded };
 }

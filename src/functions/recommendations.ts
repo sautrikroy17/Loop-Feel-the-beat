@@ -16,7 +16,6 @@
 
 import { createServerFn } from '@tanstack/react-start';
 import { searchYouTubeMusic, getRelatedTracks } from '../server/services/youtubeMusic';
-import type { MoodLabel } from '../hooks/useListeningIntelligence';
 
 interface PersonalizedSeed {
   // Current track context
@@ -28,8 +27,6 @@ interface PersonalizedSeed {
   topGenres?: string[];      // e.g. ['lofi', 'phonk', 'bollywood']
   topArtists?: string[];     // e.g. ['arijit singh', 'the weeknd']
   recentArtists?: string[];
-  mood?: MoodLabel;
-  moodQuery?: string;        // pre-built query from moodToQuery()
   genre?: string;            // single primary genre hint
 }
 
@@ -60,30 +57,11 @@ function toTrack(t: any): DiscoveryTrack {
   };
 }
 
-// ── Mood metadata ─────────────────────────────────────────────────
-
-const MOOD_META: Record<MoodLabel, { label: string; icon: string; underground: string; trending: string }> = {
-  focus:        { label: 'Focus Flow',      icon: '🎯', underground: 'lofi underground study instrumental',    trending: 'lofi beats mashup trending' },
-  chill:        { label: 'Chill Vibes',     icon: '🌊', underground: 'indie pop hidden gems',                  trending: 'chill 2024 viral' },
-  'night-drive':{ label: '2AM Drive',       icon: '🌙', underground: 'dark trap night',                        trending: 'late night drive playlist' },
-  party:        { label: 'Party Mode',      icon: '🔥', underground: 'underground club party',                 trending: 'party anthems 2024 viral banger' },
-  emotional:    { label: 'Feel Everything', icon: '💙', underground: 'emotional indie sad',                    trending: 'sad songs 2024 viral' },
-  gym:          { label: 'Gym Mode',        icon: '⚡', underground: 'workout motivation rap',                 trending: 'gym motivation hype' },
-  underground:  { label: 'Hidden Gems',     icon: '💎', underground: 'indie pop obscure 2024 hidden',          trending: 'underground trending 2024' },
-  morning:      { label: 'Morning Energy',  icon: '☀️', underground: 'morning uplifting indie',                trending: 'uplifting morning music 2024' },
-  discovery:    { label: 'Fresh Picks',     icon: '✨', underground: 'new indie artists 2024 emerging',        trending: 'new music 2024 discovery trending' },
-  balanced:     { label: 'Your Mix',        icon: '🎵', underground: 'indie gems 2024',                        trending: 'top songs of the week viral' },
-};
-
-// ── Hour-of-day context ───────────────────────────────────────────
-
-function hourLabel(): string {
-  const h = new Date().getHours();
-  if (h >= 5  && h < 10) return 'morning';
-  if (h >= 10 && h < 17) return 'afternoon';
-  if (h >= 17 && h < 21) return 'evening';
-  if (h >= 21 || h < 4)  return 'night';
-  return 'latenight';
+function toTitleCase(str: string) {
+  return str.replace(
+    /\w\S*/g,
+    text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+  );
 }
 
 export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
@@ -91,71 +69,59 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
   .handler(async ({ data }): Promise<DiscoverySection[]> => {
     const {
       trackId, artist, topGenres = [], topArtists = [],
-      recentArtists = [], mood = 'balanced', moodQuery,
-      genre,
+      recentArtists = []
     } = data;
 
-    const primaryGenre  = genre ?? topGenres[0] ?? 'top trending hits';
+    const g1 = topGenres[0] ?? 'Pop';
+    const g2 = topGenres[1] ?? 'Hip Hop';
+    const g3 = topGenres[2] ?? 'R&B';
     const primaryArtist = artist ?? topArtists[0] ?? recentArtists[0] ?? '';
-    const moodMeta      = MOOD_META[mood] ?? MOOD_META.balanced;
-    const timeCtx       = hourLabel();
 
     // Build contextual "More Like" label
     const artistLabel = primaryArtist
       ? primaryArtist.split(/[,&]/)[0].trim()
       : null;
-    const moreLikeLabel = artistLabel ? `More Like ${artistLabel}` : 'Similar Artists';
+    const moreLikeLabel = artistLabel ? `More Like ${toTitleCase(artistLabel)}` : 'Similar Artists';
 
-    // Smart trending based on genre + time (Gen-Z adaptive)
-    const trendingQuery = topGenres.length > 0
-      ? `${primaryGenre} ${moodMeta.trending}`
-      : `top songs of the week trending 2024 ${moodMeta.trending}`;
+    // Queries based entirely on user's pure taste
+    const qForYou = trackId
+      ? '' // We use getRelatedTracks if trackId exists
+      : `${primaryArtist} ${g1} mix playlist`;
 
-    // Underground query
-    const undergroundQuery = topGenres.length > 1
-      ? `${topGenres.slice(0, 2).join(' ')} ${moodMeta.underground}`
-      : `${primaryGenre} ${moodMeta.underground}`;
+    const qSimilar = primaryArtist
+      ? `${primaryArtist} similar artists ${g1}`
+      : `${g1} similar artists mix`;
 
-    // Based on you: combine top artist × top genre (or default to top charts)
-    const basedOnQuery = topArtists.length > 0 && topGenres.length > 0
-      ? `${topArtists[0]} ${topGenres[0]} mix playlist`
-      : `top songs of the week billboard trending playlist`;
-
-    // Deep cuts: same artist, diverse tracks (or default to party/club)
-    const deepCutsQuery = primaryArtist
-      ? `${primaryArtist} best songs rare b-sides deep cuts`
-      : `${primaryGenre} party songs club mix trending`;
-
-    // Mood query (may be pre-built by client or generated here)
-    const moodQ = moodQuery ?? `${primaryGenre} ${moodMeta.label.toLowerCase()} music`;
+    const qGenre1Trending = `${g1} top songs trending 2024 hits`;
+    const qGenre2Classics = `${g2} best songs classics playlist`;
+    const qGenre3Hidden   = `${g3} underground hidden gems rare tracks`;
+    
+    const qBasedOn = topArtists.length > 0
+      ? `${topArtists[0]} ${g1} best playlist`
+      : `global top songs viral playlist`;
 
     // Fetch all in parallel
-    const [forYou, similar, moodMix, trending, underground, deepCuts, basedOn] =
+    const [forYou, similar, g1Trending, g2Classics, g3Hidden, basedOn] =
       await Promise.allSettled([
         // For You: best signal from YTM related
         trackId
           ? getRelatedTracks(trackId, 20).then(t => t.map(toTrack))
-          : searchYouTubeMusic(`${primaryArtist} ${primaryGenre} playlist mix`, 20).then(t => t.map(toTrack)),
+          : searchYouTubeMusic(qForYou, 20).then(t => t.map(toTrack)),
 
-        // More Like X: artist-seeded
-        primaryArtist
-          ? searchYouTubeMusic(`${primaryArtist} similar artists ${primaryGenre}`, 18).then(t => t.map(toTrack))
-          : searchYouTubeMusic(`${primaryGenre} similar artists mix`, 18).then(t => t.map(toTrack)),
+        // More Like X
+        searchYouTubeMusic(qSimilar, 18).then(t => t.map(toTrack)),
 
-        // Mood Mix
-        searchYouTubeMusic(moodQ, 18).then(t => t.map(toTrack)),
+        // Genre 1 Trending
+        searchYouTubeMusic(qGenre1Trending, 18).then(t => t.map(toTrack)),
 
-        // Trending (always fresh)
-        searchYouTubeMusic(trendingQuery, 18).then(t => t.map(toTrack)),
+        // Genre 2 Classics
+        searchYouTubeMusic(qGenre2Classics, 18).then(t => t.map(toTrack)),
 
-        // Underground
-        searchYouTubeMusic(undergroundQuery, 18).then(t => t.map(toTrack)),
+        // Genre 3 Hidden Gems
+        searchYouTubeMusic(qGenre3Hidden, 16).then(t => t.map(toTrack)),
 
-        // Deep Cuts
-        searchYouTubeMusic(deepCutsQuery, 16).then(t => t.map(toTrack)),
-
-        // Based on your listening
-        searchYouTubeMusic(basedOnQuery, 18).then(t => t.map(toTrack)),
+        // Based on Top Artist
+        searchYouTubeMusic(qBasedOn, 18).then(t => t.map(toTrack)),
       ]);
 
     function unwrap(r: PromiseSettledResult<DiscoveryTrack[]>): DiscoveryTrack[] {
@@ -163,13 +129,12 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
     }
 
     const sections: DiscoverySection[] = [
-      { id: 'for-you',     title: 'For You',          icon: '❤️', tracks: unwrap(forYou) },
-      { id: 'similar',     title: moreLikeLabel,       icon: '🎵', tracks: unwrap(similar) },
-      { id: 'mood',        title: `${moodMeta.icon} ${moodMeta.label}`, icon: moodMeta.icon, tracks: unwrap(moodMix) },
-      { id: 'trending',    title: 'Trending Now',      icon: '📈', tracks: unwrap(trending) },
-      { id: 'underground', title: 'Underground Finds', icon: '💎', tracks: unwrap(underground) },
-      { id: 'deep-cuts',   title: 'Deep Cuts',         icon: '🎯', tracks: unwrap(deepCuts) },
-      { id: 'based-on',    title: 'Based on Your Taste',icon:'🧠', tracks: unwrap(basedOn) },
+      { id: 'for-you',     title: 'For You',                               icon: '❤️', tracks: unwrap(forYou) },
+      { id: 'similar',     title: moreLikeLabel,                           icon: '🎵', tracks: unwrap(similar) },
+      { id: 'g1-trending', title: `Trending ${toTitleCase(g1)}`,           icon: '🔥', tracks: unwrap(g1Trending) },
+      { id: 'g2-classics', title: `Top ${toTitleCase(g2)}`,                icon: '👑', tracks: unwrap(g2Classics) },
+      { id: 'g3-hidden',   title: `Hidden ${toTitleCase(g3)} Gems`,        icon: '💎', tracks: unwrap(g3Hidden) },
+      { id: 'based-on',    title: `Based on ${toTitleCase(primaryArtist || g1)}`, icon: '🧠', tracks: unwrap(basedOn) },
     ];
 
     return sections.filter(s => s.tracks.length > 0);

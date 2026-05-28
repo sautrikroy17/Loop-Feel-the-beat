@@ -6,12 +6,19 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { LoopLogo } from './LoopLogo';
 import { signInWithGoogle } from '@/lib/supabase/auth';
 
-const MOOD_BADGES: Record<string, string> = {
-  focus: '🎯 Focus', chill: '🌊 Chill', 'night-drive': '🌙 Night',
-  party: '🔥 Party', emotional: '💙 Feels', gym: '⚡ Gym',
-  underground: '💎 Underground', morning: '☀️ Morning',
-  discovery: '✨ Explore', balanced: '',
+const GENRE_ICONS: Record<string, string> = {
+  lofi: '☕', phonk: '🚗', trap: '🔥', house: '🪩', rnb: '🖤',
+  jazz: '🎷', indie: '🌻', hiphop: '🎤', pop: '✨', classical: '🎻',
+  rock: '🎸', bollywood: '🌊', kpop: '💕', slowed: '🌙', synthwave: '🌃',
+  acoustic: '🏕️', afrobeats: '🌴', latin: '💃'
 };
+
+function toTitleCase(str: string) {
+  return str.replace(
+    /\w\S*/g,
+    text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+  );
+}
 
 interface NavbarProps {
   onSearchOpen: () => void;
@@ -40,8 +47,9 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
   );
 
   const intel     = useListeningIntelligence();
-  const mood      = intel.getCurrentMood();
-  const moodBadge = MOOD_BADGES[mood] ?? '';
+  const topGenre  = intel.getTopGenres(1)[0] ?? '';
+  const vibeIcon  = GENRE_ICONS[topGenre] ?? '🎵';
+  const moodBadge = topGenre ? `${vibeIcon} ${toTitleCase(topGenre)}` : '';
   const hasData   = intel.events.length > 0;
   const { user }  = useAuth();
   const { customAvatarUrl } = useUserProfile();
@@ -67,7 +75,7 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
           <NavLink href="#top">Home</NavLink>
           <NavLink href="#discover">Discover</NavLink>
 
-          {/* Mood badge */}
+          {/* Vibe badge */}
           {hasData && moodBadge && (
             <motion.span
               initial={{ opacity: 0, scale: 0.85 }}
