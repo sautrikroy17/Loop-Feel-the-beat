@@ -217,7 +217,7 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 
   // Debounced search
   useEffect(() => {
-    if (query.length < 2) { setResults([]); setSelectedIdx(-1); return; }
+    if (query.length < 2) { setResults({ tracks: [], albums: [], playlists: [] }); setSelectedIdx(-1); return; }
     setSearching(true);
     const t = setTimeout(async () => {
       try {
