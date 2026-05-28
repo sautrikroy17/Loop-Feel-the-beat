@@ -228,7 +228,7 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         setSelectedIdx(-1);
       } catch { /* silent */ }
       finally { setSearching(false); }
-    }, 320);
+    }, 200);
     return () => clearTimeout(t);
   }, [query]);
 
