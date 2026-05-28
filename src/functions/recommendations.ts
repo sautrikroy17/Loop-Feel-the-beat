@@ -29,6 +29,7 @@ interface PersonalizedSeed {
   recentArtists?: string[];
   topReplayedTracks?: { title: string; artist: string }[];
   genre?: string;            // single primary genre hint
+  tasteIdentity?: string;
 }
 
 interface DiscoveryTrack {
@@ -71,7 +72,7 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
   .handler(async ({ data }): Promise<DiscoverySection[]> => {
     const {
       trackId, artist, topGenres = [], topArtists = [],
-      recentArtists = [], topReplayedTracks = []
+      recentArtists = [], topReplayedTracks = [], tasteIdentity = 'New Explorer'
     } = data;
 
     const g1 = topGenres[0] ?? 'Pop';
@@ -83,6 +84,10 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
     
     const qForYou = trackId ? '' : t1 ? `${t1.title} ${t1.artist} mix` : `${primaryArtist} ${g1} mix`;
     const qBasedOn = t1 ? `${t1.title} ${g1} playlist` : `${topArtists[0] || 'Viral'} ${g1} best playlist`;
+    
+    // AI Mix Generation
+    const qAIMix = `${tasteIdentity} playlist 2024`;
+    const aiMixTitle = `Your ${tasteIdentity} Mix`;
 
     // 2. Real Music Culture Charts & Playlists
     // These strings map directly to massive real playlists on YT Music
@@ -133,6 +138,8 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
 
     // Fetch all in parallel
     const promises = [
+      // AI Mix: Procedurally generated for identity
+      searchYouTubeMusic(qAIMix, 20).then(t => t.map(toTrack)),
       // For You: best signal from YTM related
       trackId
         ? getRelatedTracks(trackId, 20).then(t => t.map(toTrack))
@@ -170,9 +177,10 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
     }
 
     const sections: DiscoverySection[] = [
-      { id: 'for-you',  title: 'Your Current Obsession', icon: '❤️', tracks: unwrap(0), type: 'tracks' },
-      { id: 'albums',   title: 'Essential Albums',       icon: '💿', tracks: unwrapAlbums(2), type: 'albums' },
-      { id: 'based-on', title: basedOnTitle,             icon: '🧠', tracks: unwrap(1), type: 'tracks' },
+      { id: 'ai-mix',   title: aiMixTitle,               icon: '🧠', tracks: unwrap(0), type: 'tracks' },
+      { id: 'for-you',  title: 'Your Current Obsession', icon: '❤️', tracks: unwrap(1), type: 'tracks' },
+      { id: 'albums',   title: 'Essential Albums',       icon: '💿', tracks: unwrapAlbums(3), type: 'albums' },
+      { id: 'based-on', title: basedOnTitle,             icon: '🔥', tracks: unwrap(2), type: 'tracks' },
     ];
 
     selectedCharts.forEach((chart, idx) => {
@@ -180,7 +188,7 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
         id: `chart-${idx}`,
         title: chart.title,
         icon: chart.icon,
-        tracks: unwrap(3 + idx),
+        tracks: unwrap(4 + idx),
         type: 'tracks',
       });
     });

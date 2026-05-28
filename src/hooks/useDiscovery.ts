@@ -68,6 +68,7 @@ export function useDiscovery() {
         recentArtists: intel.getRecentArtists(3),
         topReplayedTracks: intel.getTopReplayedTracks(3),
         genre:         vibe.genre,
+        tasteIdentity: intel.getTasteIdentity(),
       },
     })
       .then((result) => {

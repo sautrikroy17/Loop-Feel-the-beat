@@ -14,6 +14,7 @@ import { LikeButton } from './LikeButton';
 import { Reveal } from './Reveal';
 import { DailyMix } from './DailyMix';
 import { AlbumModal } from './AlbumModal';
+import { AIHeroMix } from './AIHeroMix';
 
 // ─── Section icon map ─────────────────────────────────────────────
 
@@ -239,6 +240,9 @@ export function RecommendationFeed() {
   const { currentTrack } = usePlayback();
   const [selectedAlbum, setSelectedAlbum] = useState<any>(null);
 
+  const aiMixSection = sections.find(s => s.id === 'ai-mix');
+  const otherSections = sections.filter(s => s.id !== 'ai-mix');
+
   return (
     <section id="discover" className="relative px-6 py-28">
       <div className="mx-auto max-w-6xl space-y-20">
@@ -262,6 +266,7 @@ export function RecommendationFeed() {
           </div>
         </Reveal>
 
+        {aiMixSection && <AIHeroMix section={aiMixSection as any} />}
 
         <DailyMix />
 
@@ -293,7 +298,7 @@ export function RecommendationFeed() {
 
         {/* Sections */}
         <AnimatePresence mode="wait">
-          {sections.length > 0 && (
+          {otherSections.length > 0 && (
             <motion.div
               key={currentTrack?.id ?? 'default'}
               initial={{ opacity: 0 }}
@@ -301,10 +306,10 @@ export function RecommendationFeed() {
               transition={{ duration: 0.3 }}
               className="space-y-20"
             >
-              {sections.map((section, i) => (
+              {otherSections.map((section, i) => (
                 <div key={section.id}>
                   <SectionRow section={section} delay={i * 0.06} onAlbumClick={setSelectedAlbum} />
-                  {i < sections.length - 1 && <div className="mt-20"><Divider /></div>}
+                  {i < otherSections.length - 1 && <div className="mt-20"><Divider /></div>}
                 </div>
               ))}
             </motion.div>

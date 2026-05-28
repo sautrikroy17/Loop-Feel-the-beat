@@ -103,6 +103,7 @@ interface IntelligenceState {
   getVibeQuerySeed: () => { artist: string; genre: string };
   getStats: () => ListeningStats;
   getRecentArtists: (n?: number) => string[];
+  getTasteIdentity: () => string;
 }
 
 const MAX_EVENTS = 200;
@@ -229,6 +230,31 @@ export const useListeningIntelligence = create<IntelligenceState>()(
           repeats:        events.filter((e) => e.repeated).length,
           completionRate: events.length > 0 ? completed / events.length : 0,
         };
+      },
+
+      getTasteIdentity: () => {
+        const s = get();
+        const topG = s.getTopGenres(1)[0];
+        const stats = s.getStats();
+        
+        if (!topG || stats.totalTracks < 3) return "New Explorer";
+
+        const hour = new Date().getHours();
+        const isLateNight = hour < 5 || hour > 21;
+        const isHighSkip = stats.skips / (stats.totalTracks || 1) > 0.4;
+        const isHighRepeat = stats.repeats > 2;
+
+        const genreBase = topG;
+
+        if (isLateNight && genreBase === 'Dark R&B') return 'Late Night R&B Addict';
+        if (isLateNight && genreBase === 'Sad Girl Pop') return 'Midnight Indie Dreamer';
+        if (genreBase === 'Festival EDM' && !isHighSkip) return 'EDM Energy';
+        if (genreBase === 'Bollywood Romance' && isHighRepeat) return 'Cinematic Soul';
+        if (genreBase === 'Desi Trap' || genreBase === 'Punjabi Heat') return 'Desi Heat Runner';
+        if (isHighSkip) return `${genreBase} Explorer`;
+        if (isHighRepeat) return `${genreBase} Addict`;
+
+        return `${genreBase} Lover`;
       },
     }),
     {

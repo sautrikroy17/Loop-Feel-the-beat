@@ -59,13 +59,18 @@ function buildAutoplaySeed(currentTrack: Track): string {
     if (intel) {
       const topGenre  = intel.getTopGenres?.(1)?.[0] ?? '';
       const topArtist = intel.getTopArtists?.(1)?.[0] ?? '';
-      const mood      = intel.getCurrentMood?.() ?? 'balanced';
-
+      const identity  = intel.getTasteIdentity?.() ?? '';
+      
+      // If we have a strong identity, use it as a massive emotional guardrail.
       const parts: string[] = [];
       const artistFirst = currentTrack.artist.split(/[,&]/)[0].trim();
       if (artistFirst) parts.push(artistFirst);
-      if (topGenre && topGenre !== 'pop') parts.push(topGenre);
-      if (mood !== 'balanced' && mood !== 'discovery') parts.push(mood);
+      
+      // Blend current track genre with user's core identity vibe
+      if (identity && identity !== 'New Explorer') parts.push(identity);
+      else if (topGenre && topGenre !== 'pop') parts.push(topGenre);
+
+      // E.g. "The Weeknd Dark R&B Addict playlist"
       return parts.join(' ') || (currentTrack.youtubeId ?? currentTrack.id);
     }
   } catch { /* intelligence not available */ }
