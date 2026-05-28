@@ -9,9 +9,11 @@ export async function saveProfileFn() {
   if (!session?.user) return;
 
   const intel = useListeningIntelligence.getState();
+  
+  // We still save the top 10 arrays for easy querying/analytics if needed
   const topArtists = intel.getTopArtists(10);
   const topGenres = intel.getTopGenres(10);
-  const moodHistory = intel.getTopGenres(1)[0]; // storing current top genre as basic history for now
+  const moodHistory = intel.getTopGenres(1)[0]; 
 
   try {
     await (supabase as any).from('user_profiles').upsert({
@@ -21,6 +23,9 @@ export async function saveProfileFn() {
       top_artists: topArtists,
       top_genres: topGenres,
       mood_history: moodHistory,
+      artist_weights: intel.artistWeights,
+      genre_weights: intel.genreWeights,
+      events: intel.events
     }, { onConflict: 'id' });
   } catch (error) {
     console.error('Error saving profile:', error);
@@ -34,7 +39,7 @@ export async function loadProfileFn() {
   try {
     const { data, error } = await (supabase as any)
       .from('user_profiles')
-      .select('top_artists, top_genres')
+      .select('top_artists, top_genres, artist_weights, genre_weights, events')
       .eq('id', session.user.id)
       .maybeSingle();
 
@@ -43,23 +48,50 @@ export async function loadProfileFn() {
     const intel = useListeningIntelligence.getState();
     const currentArtists = intel.getTopArtists();
 
-    // If cloud has data, merge it down to local device
-    if (data && (data.top_artists?.length > 0 || data.top_genres?.length > 0)) {
+    if (data) {
+      // Actively merge cloud profile with local profile flawlessly
       const aw: Record<string, number> = { ...intel.artistWeights };
-      if (data.top_artists && Array.isArray(data.top_artists)) {
+      const gw: Record<string, number> = { ...intel.genreWeights };
+      let events = [...intel.events];
+
+      // Merge exact numeric weights using Math.max to prevent inflation while preserving highest score
+      if (data.artist_weights) {
+        Object.entries(data.artist_weights).forEach(([key, val]) => {
+          aw[key] = Math.max(aw[key] || 0, Number(val));
+        });
+      } else if (data.top_artists && Array.isArray(data.top_artists)) {
         data.top_artists.forEach((a: string, i: number) => {
-          aw[a] = (aw[a] || 0) + Math.max(1, 10 - i);
+          aw[a] = Math.max(aw[a] || 0, 10 - i);
         });
       }
       
-      const gw: Record<string, number> = { ...intel.genreWeights };
-      if (data.top_genres && Array.isArray(data.top_genres)) {
+      if (data.genre_weights) {
+        Object.entries(data.genre_weights).forEach(([key, val]) => {
+          gw[key] = Math.max(gw[key] || 0, Number(val));
+        });
+      } else if (data.top_genres && Array.isArray(data.top_genres)) {
         data.top_genres.forEach((g: string, i: number) => {
-          gw[g] = (gw[g] || 0) + Math.max(1, 10 - i);
+          gw[g] = Math.max(gw[g] || 0, 10 - i);
         });
       }
 
-      useListeningIntelligence.setState({ artistWeights: aw, genreWeights: gw });
+      // Merge events log (keep 200 most recent unique events)
+      if (data.events && Array.isArray(data.events)) {
+        const uniqueEvents = new Map();
+        [...data.events, ...events].forEach(e => {
+          uniqueEvents.set(e.trackId + e.timestamp, e);
+        });
+        events = Array.from(uniqueEvents.values())
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 200);
+      }
+
+      useListeningIntelligence.setState({ artistWeights: aw, genreWeights: gw, events });
+      
+      // If the cloud was missing the raw weights but local had them, push them up
+      if (!data.artist_weights && Object.keys(aw).length > 0) {
+        saveProfileFn();
+      }
     } else if (currentArtists.length > 0) {
       // Cloud is empty, but this device has a rich profile! Upload it to cloud immediately.
       saveProfileFn();

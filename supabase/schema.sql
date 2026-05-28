@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   mood_history   text,
   daily_mix      jsonb,
   daily_mix_date text,
+  artist_weights jsonb,
+  genre_weights  jsonb,
+  events         jsonb,
   updated_at     timestamptz DEFAULT now()
 );
 
