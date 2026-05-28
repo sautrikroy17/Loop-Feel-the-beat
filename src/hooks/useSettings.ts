@@ -9,29 +9,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// ── EQ ─────────────────────────────────────────────────────────────
+// ── Premium Modes ──────────────────────────────────────────────────
 
-export interface EQBands {
-  subBass: number;   // 60 Hz  — dB-like scale –12…+12
-  bass: number;      // 250 Hz
-  mid: number;       // 1 kHz
-  highMid: number;   // 4 kHz
-  treble: number;    // 8 kHz
-}
-
-export const EQ_PRESETS: Record<string, EQBands> = {
-  flat:           { subBass: 0,   bass: 0,   mid: 0,   highMid: 0,   treble: 0 },
-  'pop':          { subBass: -1,  bass: 3,   mid: 5,   highMid: 4,   treble: 3 },
-  'bass-boost':   { subBass: 9,   bass: 7,   mid: 0,   highMid: -2,  treble: -1 },
-  'vocal':        { subBass: -3,  bass: -2,  mid: 7,   highMid: 6,   treble: 3 },
-  'club':         { subBass: 8,   bass: 6,   mid: -1,  highMid: 1,   treble: 2 },
-  'spatial':      { subBass: 4,   bass: 2,   mid: -1,  highMid: 3,   treble: 7 },
-  'night-drive':  { subBass: 6,   bass: 4,   mid: -2,  highMid: 0,   treble: 4 },
-  'acoustic':     { subBass: -4,  bass: 2,   mid: 4,   highMid: 3,   treble: 2 },
-  'cinema':       { subBass: 8,   bass: 5,   mid: 0,   highMid: -1,  treble: 5 },
-  'ultra-clarity':{ subBass: -2,  bass: -1,  mid: 3,   highMid: 8,   treble: 9 },
-  'midnight':     { subBass: 10,  bass: 8,   mid: -2,  highMid: -4,  treble: -3 },
-};
+export type PremiumMode = 'none' | 'aura' | 'midnight' | 'focus' | 'party';
 
 // ── Themes ─────────────────────────────────────────────────────────
 
@@ -110,16 +90,14 @@ export function applyTheme(name: ThemeName) {
   r.setProperty('--orb-c-color', t.orbC);
 }
 
-// Convert dB-like band value (–12…+12) to linear multiplier (0.25…4)
-export function bandToMultiplier(db: number): number {
-  return Math.pow(10, db / 20);
-}
-
 // ── Store ───────────────────────────────────────────────────────────
 
 interface SettingsState {
   // Theme
   theme: ThemeName;
+
+  // Premium Modes
+  premiumMode: PremiumMode;
 
   // Feature toggles
   canvasEnabled: boolean;
@@ -131,68 +109,71 @@ interface SettingsState {
   // Visual
   effectIntensity: number;   // 0–1
 
-  // EQ
-  eq: EQBands;
-  eqPreset: string;
-  eqEnabled: boolean;
+  // Timers
+  sleepTimerTarget: number | null; // Timestamp (ms) when music should pause
 
   // Actions
   setTheme: (t: ThemeName) => void;
-  setEQ: (bands: EQBands) => void;
-  setEQBand: (band: keyof EQBands, value: number) => void;
-  applyEQPreset: (preset: string) => void;
-  toggle: (key: 'canvasEnabled' | 'immersiveEffects' | 'reducedMotion' | 'autoplay' | 'karaokeAutoOpen' | 'eqEnabled') => void;
+  setPremiumMode: (mode: PremiumMode) => void;
+  toggle: (key: 'canvasEnabled' | 'immersiveEffects' | 'reducedMotion' | 'autoplay' | 'karaokeAutoOpen') => void;
   setEffectIntensity: (v: number) => void;
+  setSleepTimer: (minutes: number | null) => void;
 }
 
 export const useSettings = create<SettingsState>()(
   persist(
     (set, get) => ({
       theme: 'midnight',
+      premiumMode: 'none',
       canvasEnabled: true,
       immersiveEffects: true,
       reducedMotion: false,
       autoplay: true,
       karaokeAutoOpen: false,
       effectIntensity: 0.75,
-      eq: EQ_PRESETS.flat,
-      eqPreset: 'flat',
-      eqEnabled: false,
+      sleepTimerTarget: null,
 
       setTheme: (theme) => {
         set({ theme });
         applyTheme(theme);
       },
 
-      setEQ: (eq) => set({ eq, eqPreset: 'custom' }),
-
-      setEQBand: (band, value) => set((s) => ({
-        eq: { ...s.eq, [band]: value },
-        eqPreset: 'custom',
-      })),
-
-      applyEQPreset: (preset) => {
-        const bands = EQ_PRESETS[preset];
-        if (bands) set({ eq: bands, eqPreset: preset });
+      setPremiumMode: (premiumMode) => {
+        set({ premiumMode });
+        // Handle side-effects of premium modes
+        if (premiumMode === 'midnight') {
+          get().setTheme('midnight');
+        } else if (premiumMode === 'focus') {
+          get().setTheme('minimal');
+        } else if (premiumMode === 'party') {
+          get().setTheme('neon');
+          set({ effectIntensity: 1.0 });
+        }
       },
 
       toggle: (key) => set((s) => ({ [key]: !s[key as keyof SettingsState] } as any)),
 
       setEffectIntensity: (v) => set({ effectIntensity: v }),
+
+      setSleepTimer: (minutes) => {
+        if (minutes === null) {
+          set({ sleepTimerTarget: null });
+        } else {
+          set({ sleepTimerTarget: Date.now() + minutes * 60 * 1000 });
+        }
+      },
     }),
     {
       name: 'loop-settings',
       partialize: (s) => ({
         theme: s.theme,
+        premiumMode: s.premiumMode,
         canvasEnabled: s.canvasEnabled,
         immersiveEffects: s.immersiveEffects,
         reducedMotion: s.reducedMotion,
         autoplay: s.autoplay,
         karaokeAutoOpen: s.karaokeAutoOpen,
         effectIntensity: s.effectIntensity,
-        eq: s.eq,
-        eqPreset: s.eqPreset,
-        eqEnabled: s.eqEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         // Re-apply theme after hydration from localStorage

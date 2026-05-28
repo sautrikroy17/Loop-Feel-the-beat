@@ -14,11 +14,12 @@
  * Screen blend means they ADD light, never wash out the dark base.
  */
 
-import { useEffect, useRef } from 'react';
 import { subscribeToAudio } from '@/hooks/useAudioData';
+import { useSettings } from '@/hooks/useSettings';
 
 export function ReactiveBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { effectIntensity, premiumMode, immersiveEffects } = useSettings();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,12 +51,16 @@ export function ReactiveBackground() {
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
 
+      if (!immersiveEffects || premiumMode === 'focus' || effectIntensity === 0) return;
+
+      const scale = effectIntensity;
+
       // ── 1. Violet bass bloom — upper left ────────────────────────
       {
         const radius = W * (0.55 + sBass * 0.22);
         const cx = W * 0.08, cy = H * 0.12;
-        const a0 = 0.10 + sBass * 0.32;
-        const a1 = 0.02 + sBass * 0.10;
+        const a0 = (0.10 + sBass * 0.32) * scale;
+        const a1 = (0.02 + sBass * 0.10) * scale;
         const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         g.addColorStop(0,   `rgba(110, 60, 255, ${a0.toFixed(3)})`);
         g.addColorStop(0.5, `rgba(90,  45, 220, ${a1.toFixed(3)})`);
@@ -68,7 +73,7 @@ export function ReactiveBackground() {
       {
         const radius = W * (0.42 + sTreble * 0.16);
         const cx = W * 0.92, cy = H * 0.10;
-        const a0 = 0.08 + sTreble * 0.24;
+        const a0 = (0.08 + sTreble * 0.24) * scale;
         const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         g.addColorStop(0,   `rgba(50, 120, 255, ${a0.toFixed(3)})`);
         g.addColorStop(0.5, `rgba(30,  90, 220, ${(a0 * 0.35).toFixed(3)})`);
@@ -79,9 +84,9 @@ export function ReactiveBackground() {
 
       // ── 3. Vocal / mid glow — lower center ───────────────────────
       {
-        const radius = W * (0.38 + sMid * 0.15);
-        const cx = W * 0.50, cy = H * 0.88;
-        const a0 = 0.06 + sMid * 0.20;
+        const radius = W * (0.30 + sLoud * 0.10);
+        const cx = W * 0.50, cy = H * 0.50;
+        const a0 = (0.06 + sBeat * 0.25) * scale;
         const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         g.addColorStop(0,   `rgba(180, 60, 255, ${a0.toFixed(3)})`);
         g.addColorStop(0.6, `rgba(100, 40, 200, ${(a0 * 0.30).toFixed(3)})`);
@@ -94,7 +99,7 @@ export function ReactiveBackground() {
       {
         const radius = W * (0.30 + sMid * 0.08);
         const cx = W * 0.12, cy = H * 0.82;
-        const a0 = 0.04 + sMid * 0.12;
+        const a0 = (0.04 + sMid * 0.12) * scale;
         const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         g.addColorStop(0,   `rgba(30, 200, 255, ${a0.toFixed(3)})`);
         g.addColorStop(1,   'transparent');
@@ -125,11 +130,8 @@ export function ReactiveBackground() {
       }
     });
 
-    return () => {
-      unsub();
-      window.removeEventListener('resize', resize);
-    };
-  }, []);
+    return unsub;
+  }, [effectIntensity, premiumMode, immersiveEffects]);
 
   return (
     <canvas

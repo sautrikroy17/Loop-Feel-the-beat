@@ -64,6 +64,32 @@ function Index() {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
+  const karaokeAutoOpen = useSettings(state => state.karaokeAutoOpen);
+  const sleepTimerTarget = useSettings(state => state.sleepTimerTarget);
+  const setSleepTimer = useSettings(state => state.setSleepTimer);
+  const pause = usePlayback(state => state.pause);
+
+  // ── Karaoke Auto-Open Engine ──
+  useEffect(() => {
+    if (karaokeAutoOpen && currentTrack) {
+      setKaraokeOpen(true);
+    }
+  }, [currentTrack?.id, karaokeAutoOpen]);
+
+  // ── Sleep Timer Engine ──
+  useEffect(() => {
+    if (!sleepTimerTarget) return;
+    
+    const interval = setInterval(() => {
+      if (Date.now() >= sleepTimerTarget) {
+        pause();
+        setSleepTimer(null); // Reset timer
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [sleepTimerTarget, pause, setSleepTimer]);
+
   return (
     <main className="relative min-h-screen text-foreground">
       {/* Headless YouTube audio driver */}

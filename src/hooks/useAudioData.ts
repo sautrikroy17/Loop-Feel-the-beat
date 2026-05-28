@@ -17,7 +17,7 @@
 
 import { useEffect } from 'react';
 import { usePlayback } from './usePlayback';
-import { useSettings, bandToMultiplier } from './useSettings';
+import { useSettings } from './useSettings';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -140,24 +140,17 @@ function tick() {
 
   const loudness = _sBass * 0.50 + _sMid * 0.30 + _sTreble * 0.20;
 
-  // ── Frequency bins for visualizer (128 bins, EQ-modulated) ───────
-  const { eq, eqEnabled, effectIntensity } = useSettings.getState();
-  const eqM = eqEnabled ? {
-    sb: bandToMultiplier(eq.subBass),
-    b:  bandToMultiplier(eq.bass),
-    m:  bandToMultiplier(eq.mid),
-    hm: bandToMultiplier(eq.highMid),
-    tr: bandToMultiplier(eq.treble),
-  } : { sb: 1, b: 1, m: 1, hm: 1, tr: 1 };
+  // ── Frequency bins for visualizer (128 bins) ───────
+  const { effectIntensity } = useSettings.getState();
   const intensity = effectIntensity ?? 0.75;
   for (let i = 0; i < 128; i++) {
     const n = i / 127;
     let v: number;
-    if      (n < 0.07) v = _sBass * 0.88 * eqM.sb + sn(t + i * 0.4, 1.9) * 0.10;
-    else if (n < 0.20) v = _sBass * (1 - (n - 0.07) / 0.13 * 0.45) * eqM.b;
-    else if (n < 0.48) v = _sMid  * (0.78 - (n - 0.20) * 0.42) * eqM.m + sn(t + i * 0.12, 0.78) * 0.09;
-    else if (n < 0.76) v = _sMid  * 0.22 * (1 - (n - 0.48) / 0.28) * eqM.hm + sn(t + i * 0.22, 1.35) * 0.07;
-    else               v = _sTreble * 0.40 * (1 - (n - 0.76) / 0.24 * 0.80) * eqM.tr + sn(t + i * 0.5, 2.9) * 0.05;
+    if      (n < 0.07) v = _sBass * 0.88 + sn(t + i * 0.4, 1.9) * 0.10;
+    else if (n < 0.20) v = _sBass * (1 - (n - 0.07) / 0.13 * 0.45);
+    else if (n < 0.48) v = _sMid  * (0.78 - (n - 0.20) * 0.42) + sn(t + i * 0.12, 0.78) * 0.09;
+    else if (n < 0.76) v = _sMid  * 0.22 * (1 - (n - 0.48) / 0.28) + sn(t + i * 0.22, 1.35) * 0.07;
+    else               v = _sTreble * 0.40 * (1 - (n - 0.76) / 0.24 * 0.80) + sn(t + i * 0.5, 2.9) * 0.05;
     _data.freqBins[i] = Math.max(0, Math.min(1, v * intensity));
   }
 
