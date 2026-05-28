@@ -16,6 +16,7 @@ export function AudioEngine() {
   const isReadyRef         = useRef(false);
   const progressRafRef     = useRef<number | null>(null);
   const currentYtIdRef     = useRef<string | null>(null);
+  const hasPlayedOnceRef   = useRef(false);
 
   // KEY FIX: When true, we are mid-transition between tracks.
   // YouTube fires a PAUSED event when loadVideoById() interrupts a playing track.
@@ -150,12 +151,14 @@ export function AudioEngine() {
   // ── 2. Load new track when ID changes ──────────────────────────
   const currentTrackId = usePlayback(s => s.currentTrack?.id);
   const currentTrack   = usePlayback(s => s.currentTrack);
+  const youtubePlayerReady = usePlayback(s => s.youtubePlayerReady);
 
   useEffect(() => {
     if (!isReadyRef.current || !playerRef.current?.loadVideoById) return;
     if (!currentTrack) {
       playerRef.current.stopVideo?.();
       trackIdRef.current = null;
+      hasPlayedOnceRef.current = false;
       isTransitioningRef.current = false;
       stopProgressLoop();
       return;
@@ -186,6 +189,7 @@ export function AudioEngine() {
         currentYtIdRef.current = ytId;
         const startSeconds = 0; // Always start from beginning per user request
         if (usePlayback.getState().isPlaying) {
+          hasPlayedOnceRef.current = true;
           playerRef.current?.loadVideoById({ videoId: ytId, startSeconds });
         } else {
           playerRef.current?.cueVideoById({ videoId: ytId, startSeconds });
@@ -212,11 +216,10 @@ export function AudioEngine() {
       cancelled = true;
       clearTimeout(stuckTimeout);
     };
-  }, [currentTrackId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentTrackId, youtubePlayerReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 3. Toggle play/pause for SAME track ───────────────────────
   const isPlaying = usePlayback(s => s.isPlaying);
-  const youtubePlayerReady = usePlayback(s => s.youtubePlayerReady);
 
   useEffect(() => {
     if (!isReadyRef.current || !playerRef.current) return;
@@ -227,10 +230,13 @@ export function AudioEngine() {
     if (isPlaying) {
       const state = playerRef.current.getPlayerState?.();
       const YTState = window.YT?.PlayerState;
-      if (state === YTState?.CUED || state === YTState?.UNSTARTED) {
-        // Force fully load and play the track if it was stuck in a cued background state
+      
+      // If the player hasn't successfully played yet this session, OR it's stuck in CUED/UNSTARTED,
+      // we FORCE a loadVideoById to completely override the background cue and guarantee playback.
+      if (!hasPlayedOnceRef.current || state === YTState?.CUED || state === YTState?.UNSTARTED) {
         const videoId = playerRef.current.getVideoData?.()?.video_id || currentYtIdRef.current;
         if (videoId) {
+          hasPlayedOnceRef.current = true;
           const startSeconds = 0;
           playerRef.current.loadVideoById?.({ videoId, startSeconds });
         } else {
