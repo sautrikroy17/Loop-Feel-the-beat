@@ -15,10 +15,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Plus, Loader2, Play, Music2, User, Clock, ArrowUpRight } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { hybridSearchFn } from '@/functions/search';
+import { omniSearchFn, getAlbumDetailsFn, getPlaylistDetailsFn } from '@/functions/search';
 import { LikeButton } from './LikeButton';
 
-type SearchTab = 'all' | 'songs' | 'artists';
+type SearchTab = 'all' | 'songs' | 'albums' | 'playlists' | 'artists';
 
 const QUICK_FILTERS = [
   'phonk', 'slowed reverb', 'lofi hip hop', 'rap 2024',
@@ -121,11 +121,71 @@ function ArtistCard({ artist, onSearch }: { artist: ArtistResult; onSearch: (q: 
   );
 }
 
+function AlbumRow({
+  album,
+  onPlay,
+}: {
+  album: any;
+  onPlay: () => void;
+}) {
+  return (
+    <div
+      onClick={onPlay}
+      className="group flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/[0.04]"
+    >
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-white/[0.06] shadow-md">
+        {album.albumArt ? (
+          <img src={album.albumArt} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        ) : (
+          <Music2 className="m-auto h-5 w-5 text-white/20" />
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+          <Play className="h-6 w-6 fill-white text-white" />
+        </div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-medium text-white">{album.title}</div>
+        <div className="truncate text-[11px] text-white/40">Album • {album.artist}</div>
+      </div>
+    </div>
+  );
+}
+
+function PlaylistRow({
+  playlist,
+  onPlay,
+}: {
+  playlist: any;
+  onPlay: () => void;
+}) {
+  return (
+    <div
+      onClick={onPlay}
+      className="group flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/[0.04]"
+    >
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-white/[0.06] shadow-md">
+        {playlist.albumArt ? (
+          <img src={playlist.albumArt} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        ) : (
+          <Music2 className="m-auto h-5 w-5 text-white/20" />
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+          <Play className="h-6 w-6 fill-white text-white" />
+        </div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-medium text-white">{playlist.title}</div>
+        <div className="truncate text-[11px] text-white/40">Playlist • {playlist.artist || 'Curated'}</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main modal ───────────────────────────────────────────────────
 
 export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [query, setQuery]           = useState('');
-  const [results, setResults]       = useState<Track[]>([]);
+  const [results, setResults]       = useState<{ tracks: Track[]; albums: any[]; playlists: any[] }>({ tracks: [], albums: [], playlists: [] });
   const [isSearching, setSearching] = useState(false);
   const [tab, setTab]               = useState<SearchTab>('all');
   const [selectedIdx, setSelectedIdx] = useState(-1);
@@ -144,7 +204,7 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       setSelectedIdx(-1);
     } else {
       setQuery('');
-      setResults([]);
+      setResults({ tracks: [], albums: [], playlists: [] });
     }
   }, [isOpen]);
 
@@ -161,8 +221,8 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     setSearching(true);
     const t = setTimeout(async () => {
       try {
-        const res = await hybridSearchFn({ data: query });
-        setResults(res as Track[]);
+        const res = await omniSearchFn({ data: query });
+        setResults(res as { tracks: Track[]; albums: any[]; playlists: any[] });
         setSelectedIdx(-1);
       } catch { /* silent */ }
       finally { setSearching(false); }
@@ -183,8 +243,17 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     onClose();
   }, [query, saveRecent, playTrack, onClose]);
 
+  const handlePlayCollection = useCallback((items: Track[]) => {
+    if (query) saveRecent(query);
+    if (items.length > 0) {
+      playTrack(items[0]);
+      items.slice(1).forEach(t => addToQueue(t));
+    }
+    onClose();
+  }, [query, saveRecent, playTrack, addToQueue, onClose]);
+
   // Keyboard navigation
-  const visibleResults = results.slice(0, 12);
+  const visibleResults = results.tracks.slice(0, 12);
   useEffect(() => {
     if (!isOpen) return;
     const h = (e: KeyboardEvent) => {
@@ -203,8 +272,9 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     return () => window.removeEventListener('keydown', h);
   }, [isOpen, selectedIdx, visibleResults, handlePlay]);
 
-  const artists = groupArtists(results);
+  const artists = groupArtists(results.tracks);
   const showRecent = query.length < 2 && recentSearches.length > 0;
+  const hasResults = results.tracks.length > 0 || results.albums.length > 0 || results.playlists.length > 0;
 
   return (
     <AnimatePresence>
@@ -246,9 +316,9 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             </div>
 
             {/* Tabs (only when results exist) */}
-            {results.length > 0 && (
+            {hasResults && (
               <div className="flex gap-1 border-b border-white/[0.06] px-4 py-2">
-                {(['all', 'songs', 'artists'] as SearchTab[]).map(t => (
+                {(['all', 'songs', 'albums', 'playlists', 'artists'] as SearchTab[]).map(t => (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
@@ -316,14 +386,14 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
               )}
 
               {/* No results */}
-              {!isSearching && results.length === 0 && query.length >= 2 && (
+              {!isSearching && !hasResults && query.length >= 2 && (
                 <div className="py-12 text-center text-[13px] text-white/22">
                   No results for &ldquo;{query}&rdquo;
                 </div>
               )}
 
               {/* All tab / Songs tab */}
-              {results.length > 0 && (tab === 'all' || tab === 'songs') && (
+              {results.tracks.length > 0 && (tab === 'all' || tab === 'songs') && (
                 <div className="p-2 space-y-0.5">
                   {tab === 'all' && (
                     <p className="px-2.5 pt-1 pb-2 text-[10px] font-medium uppercase tracking-[0.35em] text-white/22">
@@ -342,8 +412,54 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                 </div>
               )}
 
+              {/* Albums tab */}
+              {results.albums.length > 0 && (tab === 'all' || tab === 'albums') && (
+                <div className="p-2">
+                  {tab === 'all' && (
+                    <p className="px-2.5 pt-3 pb-2 text-[10px] font-medium uppercase tracking-[0.35em] text-white/22">
+                      Albums
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+                    {(tab === 'all' ? results.albums.slice(0, 4) : results.albums).map(album => (
+                      <AlbumRow
+                        key={album.id}
+                        album={album}
+                        onPlay={async () => {
+                          const tracks = await getAlbumDetailsFn({ data: album.id });
+                          handlePlayCollection(tracks as Track[]);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Playlists tab */}
+              {results.playlists.length > 0 && (tab === 'all' || tab === 'playlists') && (
+                <div className="p-2">
+                  {tab === 'all' && (
+                    <p className="px-2.5 pt-3 pb-2 text-[10px] font-medium uppercase tracking-[0.35em] text-white/22">
+                      Playlists
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+                    {(tab === 'all' ? results.playlists.slice(0, 4) : results.playlists).map(playlist => (
+                      <PlaylistRow
+                        key={playlist.id}
+                        playlist={playlist}
+                        onPlay={async () => {
+                          const tracks = await getPlaylistDetailsFn({ data: playlist.id });
+                          handlePlayCollection(tracks as Track[]);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Artists tab */}
-              {results.length > 0 && (tab === 'all' || tab === 'artists') && artists.length > 0 && (
+              {results.tracks.length > 0 && (tab === 'all' || tab === 'artists') && artists.length > 0 && (
                 <div className="p-2">
                   {tab === 'all' && (
                     <p className="px-2.5 pt-3 pb-2 text-[10px] font-medium uppercase tracking-[0.35em] text-white/22">

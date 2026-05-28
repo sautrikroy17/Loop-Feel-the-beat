@@ -216,7 +216,7 @@ function SectionRow({ section, delay = 0, onAlbumClick }: { section: DiscoverySe
         <div className="overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           <div className="flex gap-4 pb-2">
             {section.tracks.map((track, i) => (
-              section.type === 'albums' ? (
+              (section.type === 'albums' || section.type === 'playlists') ? (
                 <AlbumCard key={track.id} album={track} index={i} onClick={() => onAlbumClick(track)} />
               ) : (
                 <TrackCard key={track.id} track={track as Track} index={i} />

@@ -47,7 +47,7 @@ interface DiscoverySection {
   title: string;
   tracks: DiscoveryTrack[];
   icon?: string;
-  type?: 'tracks' | 'albums';
+  type?: 'tracks' | 'albums' | 'playlists';
 }
 
 function toTrack(t: any): DiscoveryTrack {
@@ -61,7 +61,7 @@ function toTrack(t: any): DiscoveryTrack {
   };
 }
 
-const GARBAGE_REGEX = /workout|karaoke|cover|tribute|compilation|80s|90s|lofi hip hop radio|sex playlist|vocal version|instrumental cover|8d audio|slowed \+ reverb/i;
+const GARBAGE_REGEX = /workout|karaoke|cover|tribute|compilation|80s|90s|lofi hip hop radio|sex playlist|vocal version|instrumental cover|8d audio|slowed \+ reverb|bass boosted|tiktok version|unofficial|remake|live at|acoustic cover/i;
 
 function isPremiumTrack(t: DiscoveryTrack): boolean {
   if (GARBAGE_REGEX.test(t.title) || GARBAGE_REGEX.test(t.artist)) return false;
@@ -130,10 +130,11 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
 
     // 1. Core Dynamic Sections (Your Obsessions / Similar)
     const t1 = topReplayedTracks[0];
-    const basedOnTitle = t1 ? `Because you looped ${t1.title}` : `Because you replayed ${toTitleCase(primaryArtist)}`;
+    const basedOnTitle = t1 ? `Shared Sonic DNA` : `Same Emotional Frequency`;
     
-    const qForYou = trackId ? '' : t1 ? `${t1.title} ${t1.artist}` : `${primaryArtist} ${g1}`;
-    const qBasedOn = t1 ? `${t1.title} ${g1}` : `${topArtists[0] || 'Viral'} ${g1} hits`;
+    // Completely remove title-based search queries to prevent keyword matching (e.g. "Flame" matching "Moth into Flame")
+    const qForYou = trackId ? '' : t1 ? `${t1.artist} radio` : `${primaryArtist} radio`;
+    const qBasedOn = t1 ? `${t1.artist} mix` : `${topArtists[0] || 'Viral'} ${g1} mix`;
     
     // AI Mix Generation
     const qAIMix = `${tasteIdentity} ${primaryArtist}`;

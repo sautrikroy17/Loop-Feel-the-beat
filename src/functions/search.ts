@@ -182,3 +182,52 @@ export const getRecommendationsFn = createServerFn({ method: 'GET' })
 
     return [];
   });
+
+// ─── omniSearchFn ──────────────────────────────────────────────
+import { searchAlbums, searchPlaylist } from '../server/services/youtubeMusic';
+
+export const omniSearchFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: query }) => {
+    try {
+      const [tracks, albums, playlists] = await Promise.all([
+        searchYouTubeMusic(query, 20),
+        searchAlbums(query, 10),
+        searchPlaylist(query, 10)
+      ]);
+      return {
+        tracks: tracks.map(ytmToLoop),
+        albums: albums.map(a => ({ ...a, id: a.id, title: a.title, artist: a.artist, albumArt: getHighResAlbumArt(a.albumArt) })),
+        playlists: playlists.map(p => ({ ...p, id: p.videoId || p.id, title: p.title, artist: p.artist, albumArt: getHighResAlbumArt(p.albumArt) }))
+      };
+    } catch (err) {
+      console.error('[OmniSearch] Failed:', err);
+      return { tracks: [], albums: [], playlists: [] };
+    }
+  });
+
+export const getAlbumDetailsFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: albumId }) => {
+    try {
+      const { getAlbumDetails } = await import('../server/services/youtubeMusic');
+      const tracks = await getAlbumDetails(albumId);
+      return tracks.map(ytmToLoop);
+    } catch (err) {
+      console.error('[Search] getAlbumDetails failed:', err);
+      return [];
+    }
+  });
+
+export const getPlaylistDetailsFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: playlistId }) => {
+    try {
+      const { getPlaylistDetails } = await import('../server/services/youtubeMusic');
+      const tracks = await getPlaylistDetails(playlistId);
+      return tracks.map(ytmToLoop);
+    } catch (err) {
+      console.error('[Search] getPlaylistDetails failed:', err);
+      return [];
+    }
+  });

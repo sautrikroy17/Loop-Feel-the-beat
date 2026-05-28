@@ -345,11 +345,14 @@ export async function searchAlbums(query: string, limit = 10): Promise<YTMAlbum[
     const sectionList = dig(tabs, 0, 'tabRenderer', 'content', 'sectionListRenderer', 'contents') ?? [];
     
     const albums: YTMAlbum[] = [];
+    const GARBAGE_ALBUM_REGEX = /karaoke|tribute|cover|vocal version|instrumental version|8d audio/i;
     for (const section of sectionList) {
       const items: any[] = dig(section, 'musicShelfRenderer', 'contents') ?? [];
       for (const item of items) {
         const album = parseAlbumItem(item.musicResponsiveListItemRenderer);
-        if (album) albums.push(album);
+        if (album && !GARBAGE_ALBUM_REGEX.test(album.title) && !GARBAGE_ALBUM_REGEX.test(album.artist)) {
+          albums.push(album);
+        }
       }
     }
     return albums.slice(0, limit);
