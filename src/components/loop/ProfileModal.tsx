@@ -101,7 +101,7 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 // ── Track Row ────────────────────────────────────────────────────
 
-function TrackRow({
+export function TrackRow({
   track, onPlay, showDuration = false, children,
 }: {
   track: Track;
@@ -968,12 +968,23 @@ export function ProfileModal({
                     {tab === 'albums' && (
                       <div>
                         {savedAlbums.length > 0
-                          ? <div className="grid grid-cols-2 gap-3">
+                          ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                               {savedAlbums.map(album => (
                                 <div key={album.id} className="group relative rounded-xl bg-white/[0.04] p-3 hover:bg-white/[0.06] transition-colors cursor-pointer">
                                   <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-white/5">
                                     <img src={album.albumArt} alt="" className="h-full w-full object-cover" />
-                                    {/* Play action overlay - would open AlbumModal normally, but we can just trigger a play event or leave it as informational. Wait, in ProfileModal we don't have AlbumModal hooked up. We can just render the album details or hook it to a callback. Let's just pass `album` to a hypothetical `onAlbumClick` in the future, or close modal and navigate to Search to play it. Actually, we can just dispatch a custom event. */}
+                                    {/* Dispatch custom event to trigger AlbumModal in SearchModal/global context */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const event = new CustomEvent('loop:open-album', { detail: album });
+                                        window.dispatchEvent(event);
+                                        onClose();
+                                      }}
+                                      className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100"
+                                    >
+                                      <Play className="h-10 w-10 fill-white text-white" />
+                                    </button>
                                   </div>
                                   <div className="truncate text-sm font-semibold text-white/90">{album.title}</div>
                                   <div className="truncate text-xs text-white/45">{album.artist}</div>

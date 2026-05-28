@@ -5,6 +5,7 @@ import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { getAlbumDetailsFn } from '@/functions/recommendations';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { TrackRow } from './ProfileModal';
 
 interface AlbumModalProps {
   album: { id: string; title: string; artist: string; albumArt: string } | null;
@@ -143,26 +144,16 @@ export function AlbumModal({ album, onClose }: AlbumModalProps) {
               ) : (
                 <div className="flex flex-col gap-1">
                   {tracks.map((track, i) => (
-                    <button
+                    <TrackRow
                       key={track.id}
-                      onClick={() => playTrack(track)}
-                      className="group flex w-full items-center gap-4 rounded-lg p-3 text-left transition-colors hover:bg-white/5"
+                      track={track}
+                      onPlay={() => playTrack(track)}
+                      showDuration={true}
                     >
-                      <span className="w-6 text-right text-sm text-white/30 group-hover:text-white/60">
+                      <span className="w-6 text-right text-[11px] font-medium text-white/30 group-hover:text-white/60">
                         {i + 1}
                       </span>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="truncate text-[15px] font-medium text-white/90 group-hover:text-white">
-                          {track.title}
-                        </div>
-                        <div className="truncate text-[13px] text-white/40">
-                          {track.artist}
-                        </div>
-                      </div>
-                      <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                        <Play className="h-5 w-5 text-white" />
-                      </div>
-                    </button>
+                    </TrackRow>
                   ))}
                 </div>
               )}
