@@ -1,110 +1,61 @@
 <div align="center">
   <img src="public/loop-icon.png" alt="Loop Logo" width="80" height="80" />
   <h1>Loop — Feel the Waves 🎵</h1>
-  <p><strong>A Gen-Z music platform that adapts to your vibe.</strong></p>
+  <p><strong>A premium, mood-driven music experience built for the next generation of listeners.</strong></p>
 
   ![TypeScript](https://img.shields.io/badge/TypeScript-98.8%25-3178C6?style=flat-square&logo=typescript&logoColor=white)
-  ![Vite](https://img.shields.io/badge/Vite-7.x-646CFF?style=flat-square&logo=vite&logoColor=white)
   ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
-  ![Supabase](https://img.shields.io/badge/Supabase-Auth-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+  ![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
   ![Vercel](https://img.shields.io/badge/Live-loop--feel.vercel.app-black?style=flat-square&logo=vercel&logoColor=white)
 </div>
 
 ---
 
-## ✨ What is Loop?
+## 🎵 What is Loop?
 
-Loop is a mood-driven music platform built for the next generation of listeners. It automatically senses what you're feeling — whether it's a late-night drive, a study session, or a hype workout — and curates your experience accordingly.
+Loop is a beautifully crafted music platform designed to adapt to your mood and listening habits. Whether you're powering through a late-night study session, zoning out on a night drive, or getting hyped for the gym — Loop has you covered.
 
-> Music that listens back.
-
----
-
-## 🚀 Features
-
-- 🎧 **Mood Intelligence** — AI-powered listening analysis that detects your vibe (Night Drive, Deep Focus, Hype Mode, etc.) and adapts the UI and recommendations in real time
-- 🎨 **Dynamic Themes** — Multiple visual themes (Midnight, Neon, Aurora, Solar, Ocean) that transform the entire interface
-- 🔍 **YouTube Music Search** — Search and stream any song instantly
-- 📋 **Playlists & Library** — Create and manage your personal playlists
-- 🎵 **Full Playback Controls** — Play, pause, skip, seek, shuffle, repeat
-- 💬 **Lyrics View** — Real-time lyrics synced to playback
-- 👑 **Admin Dashboard** — Manage registered users (admin only)
-- 🔐 **Google Auth** — One-click sign in via Google OAuth (Supabase)
-- 📱 **Responsive Design** — Works beautifully across all screen sizes
+> *Music that listens back.*
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Features
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [TanStack Start](https://tanstack.com/start) + React 19 |
-| Build Tool | Vite 7 |
-| Styling | Tailwind CSS v4 + Framer Motion |
-| UI Components | Radix UI + shadcn/ui |
-| Auth & Database | [Supabase](https://supabase.com) |
-| State Management | Zustand |
-| Deployment | [Vercel](https://vercel.com) |
+### 🎧 Playback & Music
+- **Instant Music Streaming** — Stream millions of songs with no buffering, no ads, and no interruptions
+- **Full Playback Controls** — Play, pause, skip, seek, shuffle, and repeat with smooth animations
+- **Queue Management** — Build and reorder your listening queue on the fly
+- **Lyrics View** — Real-time lyrics synced to whatever's playing
 
----
+### 🧠 Mood Intelligence
+- **Vibe Detection** — Loop analyses your listening habits and automatically detects your current mood (Night Drive, Deep Focus, Hype Mode, Chill Wave, and more)
+- **Smart Recommendations** — The "Feel The Vibe" engine surfaces music tailored to your current state — not just your history
 
-## 🏃 Running Locally
+### 🔍 Search & Discovery
+- **Instant Search** — Search for any song, album, or playlist in seconds
+- **Album Browsing** — View full album tracklists and play any song instantly
+- **Discover Section** — Explore trending charts, curated moods, and editorial picks
 
-### Prerequisites
-- Node.js 18+
-- A [Supabase](https://supabase.com) project
+### 📚 Your Library
+- **Liked Songs** — Your personal collection of favourites, always at hand
+- **Playlists** — Create, edit, and organise custom playlists with cover art
+- **Saved Albums** — Save full albums to your library and access them anytime
+- **Recently Played** — Jump back into what you were listening to
 
-### Setup
+### 🎨 Personalisation
+- **Dynamic Themes** — Switch between Midnight, Neon, Aurora, Solar, and Ocean themes that transform the entire interface
+- **User Profile** — Customise your avatar and display name
+- **Listening Stats** — See your personal listening intelligence over time
 
-```bash
-# Clone the repo
-git clone https://github.com/sautrikroy17/Loop-Feel-the-waves.git
-cd Loop-Feel-the-waves
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Fill in your Supabase URL and anon key in .env
-
-# Start the dev server
-npm run dev
-```
-
-The app will be running at `http://localhost:8080`
-
-### Environment Variables
-
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+### 🔐 Account & Security
+- **Google Sign-In** — One-click authentication via Google OAuth
+- **Cloud Sync** — Your playlists, liked songs, and preferences sync across all your devices in real time
 
 ---
 
-## 🌐 Deployment
+## 🌐 Live App
 
-Loop is deployed on Vercel. Every push to `main` triggers an automatic production deployment.
-
-**Live:** [loop-feel.vercel.app](https://loop-feel.vercel.app)
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── components/       # Reusable UI components
-├── hooks/            # Custom React hooks (playback, auth, themes, etc.)
-├── routes/           # TanStack Router file-based routes
-├── functions/        # Server functions
-├── lib/              # Utilities and Supabase client
-└── types/            # TypeScript type definitions
-
-supabase/
-└── migrations/       # Database schema migrations
-```
+**[loop-feel.vercel.app](https://loop-feel.vercel.app)**
 
 ---
 
@@ -112,7 +63,13 @@ supabase/
 
 **Sautrik Roy**
 - GitHub: [@sautrikroy17](https://github.com/sautrikroy17)
-- Website: [sautrikroy.me](https://sautrikroy.me)
+- Portfolio: [sautrikroy.me](https://sautrikroy.me)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
