@@ -138,13 +138,6 @@ function RootComponent() {
   }, []);
 
   // Register Service Worker for PWA (offline shell caching + Add to Home Screen)
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
-        // SW registration is best-effort — silently fail
-      });
-    }
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
