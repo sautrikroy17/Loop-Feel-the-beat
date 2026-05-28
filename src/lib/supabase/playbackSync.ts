@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
-import { saveCloudPlaybackState, loadCloudPlaybackState } from './db';
+import { saveCloudPlaybackState, loadCloudPlaybackState, saveCloudPlaybackStateBeacon } from './db';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 let syncChannel: RealtimeChannel | null = null;
@@ -110,10 +110,9 @@ export function initPlaybackSync(userId: string) {
     beforeUnloadListener = () => {
       const state = usePlayback.getState();
       if (state.currentTrack) {
-        // Use keepalive or a synchronous-like beacon to save data on close
-        saveCloudPlaybackState(userId, {
+        // Use keepalive fetch to guarantee data is saved even as the tab closes
+        saveCloudPlaybackStateBeacon({
           currentTrack: state.currentTrack,
-          queue: state.queue.slice(0, 50),
           progress: state.progress,
           isShuffle: state.isShuffle,
           repeatMode: state.repeatMode

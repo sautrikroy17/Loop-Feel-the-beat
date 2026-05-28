@@ -283,6 +283,31 @@ export async function saveCloudPlaybackState(userId: string, state: any): Promis
   if (error) console.error('[db] saveCloudPlaybackState metadata error:', error.message);
 }
 
+export async function saveCloudPlaybackStateBeacon(state: any): Promise<void> {
+  // Used specifically for beforeunload where standard async fetch is cancelled by browsers
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return;
+
+  const lightweightState = {
+    currentTrack: state.currentTrack,
+    progress: state.progress,
+    isShuffle: state.isShuffle,
+    repeatMode: state.repeatMode,
+  };
+
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/user`;
+  fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ data: { playback_state: lightweightState } }),
+    keepalive: true
+  }).catch(() => {});
+}
+
 export async function loadCloudPlaybackState(userId: string): Promise<any | null> {
   const { data, error } = await supabase.auth.getUser();
 
