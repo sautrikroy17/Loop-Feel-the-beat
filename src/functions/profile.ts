@@ -62,17 +62,35 @@ export async function getDailyMixFn() {
   if (!session?.user) return null;
 
   try {
+    // 1. Check local storage first for a lightning-fast cached mix
     const today = new Date().toISOString().split('T')[0];
+    const cacheKey = `loop_daily_mix_${session.user.id}`;
+    const cachedStr = localStorage.getItem(cacheKey);
+    
+    if (cachedStr) {
+      try {
+        const cached = JSON.parse(cachedStr);
+        if (cached.date === today && cached.mix && cached.mix.length > 0) {
+          return cached.mix;
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+
+    // 2. Fallback to Supabase
     const { data: profile } = await (supabase as any)
       .from('user_profiles')
       .select('daily_mix, daily_mix_date')
       .eq('id', session.user.id)
       .single();
 
-    if (profile?.daily_mix_date === today && profile.daily_mix) {
+    if (profile?.daily_mix_date === today && profile.daily_mix && profile.daily_mix.length > 0) {
+      localStorage.setItem(cacheKey, JSON.stringify({ date: today, mix: profile.daily_mix }));
       return profile.daily_mix as any[];
     }
 
+    // 3. Generate new mix
     const intel = useListeningIntelligence.getState();
     const topArtists = intel.getTopArtists(3);
     const seeds = topArtists.length > 0 ? topArtists : ['Justin Bieber', 'The Kid Laroi'];
@@ -92,6 +110,10 @@ export async function getDailyMixFn() {
     const unique = Array.from(new Map(mixedTracks.map(t => [t.id || t.youtubeId, t])).values());
     const shuffled = unique.sort(() => 0.5 - Math.random()).slice(0, 25);
 
+    // Save to local storage cache immediately
+    localStorage.setItem(cacheKey, JSON.stringify({ date: today, mix: shuffled }));
+
+    // Attempt to save to Supabase (might fail silently if columns missing, but local storage covers us)
     await (supabase as any).from('user_profiles').upsert({
       id: session.user.id,
       daily_mix: shuffled,
