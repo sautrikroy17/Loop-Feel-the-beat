@@ -36,14 +36,15 @@ export async function loadProfileFn() {
       .from('user_profiles')
       .select('top_artists, top_genres')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    
+    const intel = useListeningIntelligence.getState();
+    const currentArtists = intel.getTopArtists();
 
-    if (data) {
-      const intel = useListeningIntelligence.getState();
-      
-      // Actively merge cloud profile with local profile so devices stay perfectly in sync
+    // If cloud has data, merge it down to local device
+    if (data && (data.top_artists?.length > 0 || data.top_genres?.length > 0)) {
       const aw: Record<string, number> = { ...intel.artistWeights };
       if (data.top_artists && Array.isArray(data.top_artists)) {
         data.top_artists.forEach((a: string, i: number) => {
@@ -59,6 +60,9 @@ export async function loadProfileFn() {
       }
 
       useListeningIntelligence.setState({ artistWeights: aw, genreWeights: gw });
+    } else if (currentArtists.length > 0) {
+      // Cloud is empty, but this device has a rich profile! Upload it to cloud immediately.
+      saveProfileFn();
     }
   } catch (error) {
     console.error('Error loading profile:', error);
@@ -72,7 +76,7 @@ export async function getDailyMixFn() {
   try {
     // 1. Check local storage first for a lightning-fast cached mix
     const today = new Date().toISOString().split('T')[0];
-    const cacheKey = `loop_daily_mix_v2_${session.user.id}`;
+    const cacheKey = `loop_daily_mix_v3_${session.user.id}`;
     const cachedStr = localStorage.getItem(cacheKey);
     
     if (cachedStr) {
@@ -91,7 +95,7 @@ export async function getDailyMixFn() {
       .from('user_profiles')
       .select('daily_mix, daily_mix_date')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
 
     if (profile?.daily_mix_date === today && profile.daily_mix && profile.daily_mix.length > 0) {
       localStorage.setItem(cacheKey, JSON.stringify({ date: today, mix: profile.daily_mix }));
@@ -99,6 +103,9 @@ export async function getDailyMixFn() {
     }
 
     // 3. Generate new mix
+    // CRITICAL FIX: Ensure the cloud taste profile is fully loaded into Zustand BEFORE generating!
+    await loadProfileFn();
+
     const intel = useListeningIntelligence.getState();
     const topArtists = intel.getTopArtists(3);
     const seeds = topArtists.length > 0 ? topArtists : ['Justin Bieber', 'The Kid Laroi'];
