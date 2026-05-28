@@ -172,7 +172,8 @@ function WhiteSlider({
   onCommit?: (v: number) => void;
   className?: string;
 }) {
-  const pct = ((value - min) / (max - min)) * 100;
+  let pct = (max - min) > 0 ? ((value - min) / (max - min)) * 100 : 0;
+  pct = Math.max(0, Math.min(100, pct || 0));
 
   return (
     <div className={`group relative flex items-center ${className}`} style={{ height: 16 }}>
