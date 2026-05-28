@@ -98,6 +98,8 @@ function sanitizeTitle(raw: string): string {
  */
 function primaryArtist(raw: string): string {
   return raw
+    // Split camelCase merged names (e.g. 'The WeekndJENNIE' -> 'The Weeknd JENNIE')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
     // Remove duration patterns like "2:51" or "3:05:12"
     .replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, '')
     // Remove feat./ft. and everything after
@@ -138,7 +140,7 @@ function similarity(a: string, b: string): number {
 // ── HTTP helpers ──────────────────────────────────────────────────
 
 const LRCLIB_HEADERS = { 'Lrclib-Client': 'Loop/2.0 (https://loop.fm)' };
-const TIMEOUT = 3500; // ms — strict timeout to prevent 30s+ cascade hangs
+const TIMEOUT = 1500; // ms — strict timeout to prevent cascade hangs
 
 async function lrclibGet(title: string, artist: string, duration?: number): Promise<any> {
   const p = new URLSearchParams({ track_name: title, artist_name: artist });

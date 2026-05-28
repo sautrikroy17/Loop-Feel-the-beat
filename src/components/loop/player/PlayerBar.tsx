@@ -14,6 +14,7 @@ import {
   Loader2, Mic2, Shuffle, Repeat, Repeat1, Infinity, ListPlus, FolderPlus, Check, Heart, Plus
 } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { WhiteSlider } from "./WhiteSlider";
 import { usePlayback } from '@/hooks/usePlayback';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { subscribeToAudio } from '@/hooks/useAudioData';
@@ -56,8 +57,9 @@ function EQProgressCanvas({
     if (!canvas) return;
 
     const resize = () => {
-      canvas.width  = canvas.getBoundingClientRect().width  || window.innerWidth;
-      canvas.height = canvas.getBoundingClientRect().height || 16;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width  = rect.width;
+      canvas.height = rect.height;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -68,6 +70,8 @@ function EQProgressCanvas({
       if (!ctx) return;
       const W = canvas.width;
       const H = canvas.height;
+      if (W === 0 || H === 0) return; // FIX: Don't consume CPU/GPU when hidden on mobile
+
       const p = pctRef.current;
       const progressW = (p / 100) * W;
 
@@ -155,56 +159,7 @@ function EQProgressCanvas({
 
 // ── Custom Slider (white track + white fill) ─────────────────────
 
-function WhiteSlider({
-  value,
-  min = 0,
-  max = 100,
-  step = 0.5,
-  onChange,
-  onCommit,
-  className = '',
-}: {
-  value: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  onChange: (v: number) => void;
-  onCommit?: (v: number) => void;
-  className?: string;
-}) {
-  let pct = (max - min) > 0 ? ((value - min) / (max - min)) * 100 : 0;
-  pct = Math.max(0, Math.min(100, pct || 0));
 
-  return (
-    <div className={`group relative flex items-center ${className}`} style={{ height: 16 }}>
-      {/* Track */}
-      <div className="relative h-[3px] w-full rounded-full bg-white/20">
-        {/* Fill */}
-        <div
-          className="absolute inset-y-0 left-0 rounded-full bg-white/80 transition-none"
-          style={{ width: `${pct}%` }}
-        />
-        {/* Thumb (visible on hover) */}
-        <div
-          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ left: `${pct}%` }}
-        />
-      </div>
-      {/* Invisible range for interaction */}
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        onMouseUp={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
-        onTouchEnd={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      />
-    </div>
-  );
-}
 
 // ── Playlist Picker Popup ────────────────────────────────────────
 

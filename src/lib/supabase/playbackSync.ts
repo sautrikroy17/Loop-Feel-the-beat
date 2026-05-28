@@ -1,121 +1,152 @@
-/**
- * playbackSync.ts — Lean cross-device playback restore
- *
- * Strategy (simple, no race conditions):
- *   ON BOOT   → Load cloud state once. If no track is playing, apply it (paused).
- *   ON CLOSE  → Save snapshot to cloud via keepalive fetch (beforeunload).
- *   NO real-time WebSockets — localStorage handles same-browser restore instantly.
- *   Cloud state is for cross-device "Pick up where you left off" only.
- */
-
 import { supabase } from './client';
-import { usePlayback } from '@/hooks/usePlayback';
+import { usePlayback, type Track } from '@/hooks/usePlayback';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-let userId: string | null = null;
-let bootDone = false;
-let beforeUnloadListener: (() => void) | null = null;
-// Pre-cached so beforeunload save is 100% synchronous (no async getSession call during tab close)
-let cachedAccessToken: string | null = null;
-let cachedSupabaseUrl = '';
-let cachedAnonKey = '';
+let syncChannel: RealtimeChannel | null = null;
+let currentUserId: string | null = null;
+let isApplyingSync = false;
+let unsubscribePlayback: (() => void) | null = null;
 
-// ── Public API ────────────────────────────────────────────────────
+const localDeviceId = Math.random().toString(36).substring(2, 15);
 
-export async function initPlaybackSync(uid: string) {
-  // Only run once per logged-in session
-  if (userId === uid && bootDone) return;
-  userId = uid;
-  bootDone = true;
+// ── Types ─────────────────────────────────────────────────────────
 
-  // Pre-cache auth credentials for the beforeunload handler
-  // (beforeunload can't await async calls reliably)
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (sessionData?.session?.access_token) {
-    cachedAccessToken = sessionData.session.access_token;
-    cachedSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    cachedAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+type PlaybackSyncEvent = {
+  type: 'SYNC_STATE' | 'SYNC_REQUEST' | 'SYNC_PLAY' | 'SYNC_PAUSE';
+  deviceId: string;
+  track?: Track | null;
+  queue?: Track[];
+  progress?: number;
+  isPlaying?: boolean;
+};
+
+// ── Initialization ────────────────────────────────────────────────
+
+export function initPlaybackSync(userId: string) {
+  if (syncChannel && currentUserId === userId) return;
+  
+  if (syncChannel) {
+    supabase.removeChannel(syncChannel);
   }
-
-  // Keep the token fresh whenever Supabase silently refreshes it
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (session?.access_token) {
-      cachedAccessToken = session.access_token;
-    }
+  
+  currentUserId = userId;
+  const topic = `playback-sync-${userId}`;
+  
+  syncChannel = supabase.channel(topic, {
+    config: {
+      broadcast: { ack: false },
+    },
   });
 
-  // 1. Restore from cloud if localStorage has nothing (cross-device case)
-  const localState = usePlayback.getState();
-  if (!localState.currentTrack) {
-    try {
-      const cloudState = await loadCloudState();
-      if (cloudState?.currentTrack) {
-        usePlayback.setState({
-          currentTrack: cloudState.currentTrack,
-          queue: cloudState.queue || [],
-          progress: 0, // Always start restored tracks from the beginning (0:00)
-          isShuffle: cloudState.isShuffle || false,
-          repeatMode: cloudState.repeatMode || 'none',
-          isPlaying: false, // Always start paused — user explicitly presses play
-        });
+  syncChannel
+    .on('broadcast', { event: 'playback-update' }, (payload) => {
+      const data = payload.payload as PlaybackSyncEvent;
+      // Ignore our own broadcast echoes
+      if (data.deviceId === localDeviceId) return;
+      handleRemoteEvent(data);
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // When we join, ask if anyone is playing anything so we can catch up
+        broadcastEvent({ type: 'SYNC_REQUEST' });
       }
-    } catch {
-      // Silently ignore — localStorage is the fallback on the same device
-    }
-  }
+    });
 
-  // 2. Register beforeunload handler (uses pre-cached token, fully synchronous)
-  if (beforeUnloadListener) {
-    window.removeEventListener('beforeunload', beforeUnloadListener);
-  }
-  beforeUnloadListener = () => {
-    const state = usePlayback.getState();
-    if (state.currentTrack && cachedAccessToken) {
-      saveCloudStateBeacon(state);
+  // Attach Zustand listener to broadcast out local changes
+  unsubscribePlayback = usePlayback.subscribe((state, prevState) => {
+    if (isApplyingSync) return;
+
+    // If track or queue changed, broadcast full state
+    if (state.currentTrack?.id !== prevState.currentTrack?.id || state.queue !== prevState.queue) {
+      broadcastEvent({ type: 'SYNC_STATE' });
     }
-  };
-  window.addEventListener('beforeunload', beforeUnloadListener);
+    // If we just hit play, tell other devices to pause
+    else if (state.isPlaying && !prevState.isPlaying) {
+      broadcastEvent({ type: 'SYNC_PLAY' });
+    }
+    // If we just paused, tell other devices
+    else if (!state.isPlaying && prevState.isPlaying) {
+      broadcastEvent({ type: 'SYNC_PAUSE' });
+    }
+  });
 }
 
 export function stopPlaybackSync() {
-  userId = null;
-  bootDone = false;
-  cachedAccessToken = null;
-  if (beforeUnloadListener) {
-    window.removeEventListener('beforeunload', beforeUnloadListener);
-    beforeUnloadListener = null;
+  if (syncChannel) {
+    supabase.removeChannel(syncChannel);
+    syncChannel = null;
+    currentUserId = null;
+  }
+  if (unsubscribePlayback) {
+    unsubscribePlayback();
+    unsubscribePlayback = null;
   }
 }
 
-// ── Cloud Read ────────────────────────────────────────────────────
+// ── Incoming ──────────────────────────────────────────────────────
 
-async function loadCloudState() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user?.user_metadata?.playback_state) return null;
-  return data.user.user_metadata.playback_state;
+function handleRemoteEvent(data: PlaybackSyncEvent) {
+  isApplyingSync = true;
+  
+  if (data.type === 'SYNC_REQUEST') {
+    // Another device just woke up and wants to know what's playing.
+    // If we are actively playing, we should respond with our state.
+    const state = usePlayback.getState();
+    if (state.isPlaying && state.currentTrack) {
+      broadcastEvent({ type: 'SYNC_STATE' });
+    }
+  } 
+  else if (data.type === 'SYNC_STATE') {
+    usePlayback.setState((state) => {
+      if (state.currentTrack?.id !== data.track?.id) {
+        return {
+          currentTrack: data.track ?? null,
+          queue: data.queue || state.queue,
+          progress: data.progress || 0,
+          // Handoff: We receive the new track, but we DO NOT auto-play it. 
+          // We wait for the user to explicitly hit play on this device.
+          isPlaying: false,
+          youtubePlayerReady: false,
+        };
+      }
+      return state;
+    });
+  }
+  else if (data.type === 'SYNC_PLAY') {
+    // Another device just started playing! We must pause ourselves to prevent double-audio.
+    usePlayback.setState({ isPlaying: false });
+  }
+  else if (data.type === 'SYNC_PAUSE') {
+    // Another device just paused. We just pause as well.
+    usePlayback.setState({ isPlaying: false });
+  }
+  
+  // Ensure Zustand listeners that fire synchronously have time to run before unblocking
+  setTimeout(() => {
+    isApplyingSync = false;
+  }, 50);
 }
 
-// ── Cloud Write (synchronous-safe for beforeunload) ───────────────
+// ── Outgoing ──────────────────────────────────────────────────────
 
-function saveCloudStateBeacon(state: ReturnType<typeof usePlayback.getState>) {
-  if (!cachedAccessToken || !cachedSupabaseUrl) return;
+export function broadcastEvent(eventOverride: Partial<PlaybackSyncEvent>) {
+  if (!syncChannel || isApplyingSync) return;
 
-  const payload = {
-    currentTrack: state.currentTrack,
-    queue: state.queue.slice(0, 30), // cap to stay under 8KB auth metadata limit
+  const state = usePlayback.getState();
+  
+  const event: PlaybackSyncEvent = {
+    type: eventOverride.type || 'SYNC_STATE',
+    deviceId: localDeviceId,
+    track: state.currentTrack,
+    queue: state.queue.slice(0, 50),
     progress: state.progress,
-    isShuffle: state.isShuffle,
-    repeatMode: state.repeatMode,
+    isPlaying: state.isPlaying,
+    ...eventOverride,
   };
 
-  // keepalive: true guarantees this request completes even as the tab is closing
-  fetch(`${cachedSupabaseUrl}/auth/v1/user`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cachedAccessToken}`,
-      apikey: cachedAnonKey,
-    },
-    body: JSON.stringify({ data: { playback_state: payload } }),
-    keepalive: true,
-  }).catch(() => {});
+  syncChannel.send({
+    type: 'broadcast',
+    event: 'playback-update',
+    payload: event,
+  }).catch(console.error);
 }

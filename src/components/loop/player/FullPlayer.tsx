@@ -8,6 +8,7 @@ import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { subscribeToAudio } from '@/hooks/useAudioData';
 import { FrequencyBars } from '@/components/loop/visualizer/FrequencyBars';
 import { CinematicLyrics } from './CinematicLyrics';
+import { WhiteSlider } from './WhiteSlider';
 import { LikeButton } from '@/components/loop/LikeButton';
 import { LoopLogoCanvas } from '@/components/loop/LoopLogo';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -221,36 +222,18 @@ function FullSeekbar() {
   const [dragVal, setDragVal] = useState(0);
 
   const displayTime = isDragging ? dragVal : progress;
-  const pct = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   return (
     <div>
-      <div className="group relative">
-        <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.08]">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${pct}%`,
-              background: 'linear-gradient(90deg, oklch(0.72 0.26 248), oklch(0.68 0.24 286))',
-            }}
-          />
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={duration || 1}
-          step={0.5}
-          value={displayTime}
-          onChange={(e) => { setIsDragging(true); setDragVal(Number(e.target.value)); }}
-          onMouseUp={(e) => { seekTo(Number((e.target as HTMLInputElement).value)); setIsDragging(false); }}
-          onTouchEnd={(e) => { seekTo(Number((e.target as HTMLInputElement).value)); setIsDragging(false); }}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-        <div
-          className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-white shadow-md opacity-0 transition-opacity group-hover:opacity-100"
-          style={{ left: `calc(${pct}% - 7px)` }}
-        />
-      </div>
+      <WhiteSlider
+        value={displayTime}
+        min={0}
+        max={duration || 1}
+        step={0.5}
+        onChange={(v) => { setIsDragging(true); setDragVal(v); }}
+        onCommit={(v) => { setIsDragging(false); seekTo(v); }}
+        className="w-full"
+      />
       <div className="mt-2 flex justify-between text-[10px] tabular-nums text-white/28">
         <span>{fmt(displayTime)}</span>
         <span>{fmt(duration)}</span>
@@ -424,13 +407,13 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 >
                   {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </button>
-                <input
-                  type="range"
+                <WhiteSlider
+                  value={volume}
                   min={0}
                   max={100}
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="flex-1 cursor-pointer accent-[oklch(0.72_0.23_290)] thumbless-range"
+                  step={1}
+                  onChange={(v) => setVolume(v)}
+                  className="flex-1"
                 />
                 <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-white/22">
                   {volume}
