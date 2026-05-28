@@ -42,15 +42,23 @@ export async function loadProfileFn() {
 
     if (data) {
       const intel = useListeningIntelligence.getState();
-      const currentArtists = intel.getTopArtists();
       
-      if (currentArtists.length === 0 && data.top_artists) {
-        const aw: Record<string, number> = {};
-        (data.top_artists as string[]).forEach((a, i) => {
-          aw[a] = 10 - i;
+      // Actively merge cloud profile with local profile so devices stay perfectly in sync
+      const aw: Record<string, number> = { ...intel.artistWeights };
+      if (data.top_artists && Array.isArray(data.top_artists)) {
+        data.top_artists.forEach((a: string, i: number) => {
+          aw[a] = (aw[a] || 0) + Math.max(1, 10 - i);
         });
-        useListeningIntelligence.setState({ artistWeights: aw });
       }
+      
+      const gw: Record<string, number> = { ...intel.genreWeights };
+      if (data.top_genres && Array.isArray(data.top_genres)) {
+        data.top_genres.forEach((g: string, i: number) => {
+          gw[g] = (gw[g] || 0) + Math.max(1, 10 - i);
+        });
+      }
+
+      useListeningIntelligence.setState({ artistWeights: aw, genreWeights: gw });
     }
   } catch (error) {
     console.error('Error loading profile:', error);
