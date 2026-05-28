@@ -124,17 +124,33 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
           </motion.span>
         </h1>
 
-        {/* Sub-tagline */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.3, delay: 0.50, ease }}
-          className="mx-auto mt-8 max-w-lg text-[15px] leading-[1.8] text-white/32"
-        >
-          Any track. Any vibe. Any hour of the night.
-          <br />
-          <span className="text-white/22">Synced lyrics · Smart taste-matching · No ads. Ever.</span>
-        </motion.p>
+        {/* Now Playing badge (Moved up to replace old text) */}
+        {currentTrack && (
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.50, ease }}
+            className="mx-auto mt-10 inline-flex items-center gap-3.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 backdrop-blur-xl"
+          >
+            {currentTrack.albumArt && (
+              <img
+                src={currentTrack.albumArt}
+                alt=""
+                className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/[0.08]"
+              />
+            )}
+            <div className="text-left">
+              <div className="text-[9px] uppercase tracking-[0.3em] text-white/28">
+                {isPlaying ? 'Now Playing' : 'Paused'}
+              </div>
+              <div className="mt-0.5 max-w-[200px] truncate text-sm font-medium text-white/80">
+                {currentTrack.title}
+              </div>
+            </div>
+            {/* Live EQ bars */}
+            <LiveEQBars isPlaying={isPlaying} />
+          </motion.div>
+        )}
 
         {/* CTAs */}
         <motion.div
@@ -172,34 +188,6 @@ export function Hero({ onSearchOpen }: { onSearchOpen: () => void }) {
             What's dropping
           </a>
         </motion.div>
-
-        {/* Now Playing badge */}
-        {currentTrack && (
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.5, ease }}
-            className="mt-14 inline-flex items-center gap-3.5 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 backdrop-blur-xl"
-          >
-            {currentTrack.albumArt && (
-              <img
-                src={currentTrack.albumArt}
-                alt=""
-                className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/[0.08]"
-              />
-            )}
-            <div className="text-left">
-              <div className="text-[9px] uppercase tracking-[0.3em] text-white/28">
-                {isPlaying ? 'Now Playing' : 'Paused'}
-              </div>
-              <div className="mt-0.5 max-w-[200px] truncate text-sm font-medium text-white/80">
-                {currentTrack.title}
-              </div>
-            </div>
-            {/* Live EQ bars */}
-            <LiveEQBars isPlaying={isPlaying} />
-          </motion.div>
-        )}
       </motion.div>
 
       {/* Scroll hint */}
