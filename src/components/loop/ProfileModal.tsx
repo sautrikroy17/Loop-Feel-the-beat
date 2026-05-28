@@ -22,6 +22,7 @@ import { useListeningIntelligence } from '@/hooks/useListeningIntelligence';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from '@/lib/supabase/auth';
 import { LikeButton } from './LikeButton';
+import { AlbumModal } from './AlbumModal';
 import { hybridSearchFn } from '@/functions/search';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -775,6 +776,7 @@ export function ProfileModal({
   const [tab, setTab] = useState<ProfileTab>(mode === 'profile' ? 'stats' : 'liked');
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
   const { likedTracks, recentlyPlayed, playlists, savedAlbums, deletePlaylist, createPlaylist, removeAlbum } = useUserProfile();
   const { user } = useAuth();
   const { playTrack } = usePlayback();
@@ -976,13 +978,10 @@ export function ProfileModal({
                                 <div key={album.id} className="group relative rounded-xl bg-white/[0.04] p-3 hover:bg-white/[0.06] transition-colors cursor-pointer">
                                   <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-white/5">
                                     <img src={album.albumArt} alt="" className="h-full w-full object-cover" />
-                                    {/* Dispatch custom event to trigger AlbumModal in SearchModal/global context */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const event = new CustomEvent('loop:open-album', { detail: album });
-                                        window.dispatchEvent(event);
-                                        onClose();
+                                        setSelectedAlbum(album);
                                       }}
                                       className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
@@ -1013,6 +1012,12 @@ export function ProfileModal({
             </div>
           </motion.div>
         </motion.div>
+      )}
+      {selectedAlbum && (
+        <AlbumModal
+          album={selectedAlbum}
+          onClose={() => setSelectedAlbum(null)}
+        />
       )}
     </AnimatePresence>
   );
