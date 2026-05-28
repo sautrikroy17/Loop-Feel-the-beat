@@ -12,6 +12,13 @@ import type { Track } from '@/hooks/usePlayback';
 
 // ── Types ───────────────────────────────────────────────────────────
 
+export interface SavedAlbum {
+  id: string;
+  title: string;
+  artist: string;
+  albumArt: string;
+}
+
 export interface DBPlaylist {
   id: string;
   name: string;
@@ -49,6 +56,35 @@ export async function deleteLikedSong(userId: string, trackId: string): Promise<
     .eq('user_id', userId)
     .eq('track_id', trackId);
   if (error) console.error('[db] deleteLikedSong:', error.message);
+}
+
+// ── Saved Albums ────────────────────────────────────────────────────
+
+export async function fetchSavedAlbums(userId: string): Promise<SavedAlbum[]> {
+  const { data, error } = await supabase
+    .from('saved_albums')
+    .select('album_data, saved_at')
+    .eq('user_id', userId)
+    .order('saved_at', { ascending: false });
+
+  if (error) { console.error('[db] fetchSavedAlbums:', error.message); return []; }
+  return (data ?? []).map((r) => r.album_data as SavedAlbum);
+}
+
+export async function insertSavedAlbum(userId: string, album: SavedAlbum): Promise<void> {
+  const { error } = await supabase
+    .from('saved_albums')
+    .upsert({ user_id: userId, album_id: album.id, album_data: album }, { onConflict: 'user_id,album_id' });
+  if (error) console.error('[db] insertSavedAlbum:', error.message);
+}
+
+export async function deleteSavedAlbum(userId: string, albumId: string): Promise<void> {
+  const { error } = await supabase
+    .from('saved_albums')
+    .delete()
+    .eq('user_id', userId)
+    .eq('album_id', albumId);
+  if (error) console.error('[db] deleteSavedAlbum:', error.message);
 }
 
 // ── Playlists ───────────────────────────────────────────────────────

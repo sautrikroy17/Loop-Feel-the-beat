@@ -225,7 +225,7 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
         ? getRelatedTracks(t1.videoId, 20).then(t => t.map(toTrack))
         : searchYouTubeMusic(qBasedOn, 18).then(t => t.map(toTrack)),
       // Fetch dynamic trending albums for the top artist (so we never hit "compilation" albums)
-      searchAlbums(primaryArtist ? `${primaryArtist}` : `${g1} trending albums`, 10),
+      searchAlbums(primaryArtist ? `${primaryArtist} official albums` : `${g1} popular albums`, 10),
     ];
 
     // Add chart queries by fetching the OFFICIAL playlist from YouTube Music

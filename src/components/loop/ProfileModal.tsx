@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Heart, Clock, ListMusic, Play, Trash2, Music2,
   User, Plus, Camera, Image as ImageIcon, ChevronLeft,
-  Search as SearchIcon, Check, Pencil, Loader2,
+  Search as SearchIcon, Check, Pencil, Loader2, Disc,
 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
@@ -34,7 +34,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Link } from '@tanstack/react-router';
 
-type ProfileTab = 'liked' | 'recent' | 'playlists' | 'stats';
+type ProfileTab = 'liked' | 'recent' | 'playlists' | 'albums' | 'stats';
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -772,7 +772,7 @@ export function ProfileModal({
   const [tab, setTab] = useState<ProfileTab>(mode === 'profile' ? 'stats' : 'liked');
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const { likedTracks, recentlyPlayed, playlists, deletePlaylist, createPlaylist } = useUserProfile();
+  const { likedTracks, recentlyPlayed, playlists, savedAlbums, deletePlaylist, createPlaylist, removeAlbum } = useUserProfile();
   const { user } = useAuth();
   const { playTrack } = usePlayback();
 
@@ -790,6 +790,7 @@ export function ProfileModal({
     { id: 'liked'     as ProfileTab, label: 'Liked',     icon: <Heart className="h-3.5 w-3.5" />,     count: likedTracks.length },
     { id: 'recent'    as ProfileTab, label: 'Recent',    icon: <Clock className="h-3.5 w-3.5" />,     count: recentlyPlayed.length },
     { id: 'playlists' as ProfileTab, label: 'Playlists', icon: <ListMusic className="h-3.5 w-3.5" />, count: playlists.length },
+    { id: 'albums'    as ProfileTab, label: 'Albums',    icon: <Disc className="h-3.5 w-3.5" />,      count: savedAlbums.length },
     { id: 'stats'     as ProfileTab, label: 'Profile',   icon: <User className="h-3.5 w-3.5" /> },
   ];
 
@@ -959,6 +960,33 @@ export function ProfileModal({
                               </div>
                             ))
                           : <EmptyState icon={<ListMusic className="h-8 w-8" />} text="Create your first playlist" />
+                        }
+                      </div>
+                    )}
+
+                    {/* Albums */}
+                    {tab === 'albums' && (
+                      <div>
+                        {savedAlbums.length > 0
+                          ? <div className="grid grid-cols-2 gap-3">
+                              {savedAlbums.map(album => (
+                                <div key={album.id} className="group relative rounded-xl bg-white/[0.04] p-3 hover:bg-white/[0.06] transition-colors cursor-pointer">
+                                  <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-white/5">
+                                    <img src={album.albumArt} alt="" className="h-full w-full object-cover" />
+                                    {/* Play action overlay - would open AlbumModal normally, but we can just trigger a play event or leave it as informational. Wait, in ProfileModal we don't have AlbumModal hooked up. We can just render the album details or hook it to a callback. Let's just pass `album` to a hypothetical `onAlbumClick` in the future, or close modal and navigate to Search to play it. Actually, we can just dispatch a custom event. */}
+                                  </div>
+                                  <div className="truncate text-sm font-semibold text-white/90">{album.title}</div>
+                                  <div className="truncate text-xs text-white/45">{album.artist}</div>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); removeAlbum(album.id, user?.id); }}
+                                    className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 rounded-full bg-black/60 p-1.5 text-white hover:bg-red-500/80 transition-all"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          : <EmptyState icon={<Disc className="h-8 w-8" />} text="Save albums to view them here" />
                         }
                       </div>
                     )}

@@ -20,6 +20,8 @@ import {
   addTrackToPlaylistDB, removeTrackFromPlaylistDB,
   fetchRecentlyPlayed, insertRecentlyPlayed,
   fetchUserProfile, upsertUserProfile,
+  fetchSavedAlbums, insertSavedAlbum, deleteSavedAlbum,
+  type SavedAlbum
 } from '@/lib/supabase/db';
 
 export interface Playlist {
@@ -36,6 +38,7 @@ interface UserProfileState {
   likedTracks:     Track[];
   recentlyPlayed:  Track[];
   playlists:       Playlist[];
+  savedAlbums:     SavedAlbum[];
   customAvatarUrl: string | null;
 
   // Internal (not persisted — reset on every page load)
@@ -45,6 +48,11 @@ interface UserProfileState {
   likeTrack:               (track: Track, userId?: string) => void;
   unlikeTrack:             (id: string,   userId?: string) => void;
   isLiked:                 (id: string) => boolean;
+  
+  saveAlbum:               (album: SavedAlbum, userId?: string) => void;
+  removeAlbum:             (albumId: string, userId?: string) => void;
+  isAlbumSaved:            (albumId: string) => boolean;
+
   addToRecentlyPlayed:     (track: Track, userId?: string) => void;
   createPlaylist:          (name: string, coverArt?: string, userId?: string) => Playlist;
   deletePlaylist:          (id: string,   userId?: string) => void;
@@ -116,6 +124,7 @@ export const useUserProfile = create<UserProfileState>()(
       likedTracks:     [],
       recentlyPlayed:  [],
       playlists:       [],
+      savedAlbums:     [],
       customAvatarUrl: null,
       _syncing:        false,
 
@@ -140,6 +149,24 @@ export const useUserProfile = create<UserProfileState>()(
       },
 
       isLiked: (id) => get().likedTrackIds.includes(id),
+
+      // ── Saved Albums ────────────────────────────────────────────────
+      saveAlbum: (album, userId) => {
+        set((s) => {
+          if (s.savedAlbums.some((a) => a.id === album.id)) return s;
+          return { savedAlbums: [album, ...s.savedAlbums] };
+        });
+        if (userId) insertSavedAlbum(userId, album).catch(console.error);
+      },
+
+      removeAlbum: (albumId, userId) => {
+        set((s) => ({
+          savedAlbums: s.savedAlbums.filter((a) => a.id !== albumId),
+        }));
+        if (userId) deleteSavedAlbum(userId, albumId).catch(console.error);
+      },
+
+      isAlbumSaved: (albumId) => get().savedAlbums.some((a) => a.id === albumId),
 
       // ── Recently Played ──────────────────────────────────────────────
       addToRecentlyPlayed: (track, userId) => {
@@ -248,15 +275,16 @@ export const useUserProfile = create<UserProfileState>()(
           );
 
           // ── Step 2: fetch fresh data from Supabase ───────────────────
-          const [liked, cloudPlaylists, recent, profile] = await Promise.all([
+          const [dbLiked, dbPlaylists, dbRecent, dbProfile, dbAlbums] = await Promise.all([
             fetchLikedSongs(userId),
             fetchPlaylists(userId),
             fetchRecentlyPlayed(userId),
             fetchUserProfile(userId),
+            fetchSavedAlbums(userId),
           ]);
 
           // Map cloud playlists to local Playlist shape
-          const playlists: Playlist[] = cloudPlaylists.map((p) => ({
+          const playlists: Playlist[] = dbPlaylists.map((p) => ({
             id:        p.id,
             name:      p.name,
             tracks:    p.tracks,
@@ -267,7 +295,7 @@ export const useUserProfile = create<UserProfileState>()(
           // Avatar priority:
           // 1. user_profiles.avatar_url (custom, cloud-synced)
           // 2. Google OAuth avatar (same for all browsers — seed it to user_profiles if missing)
-          let avatarUrl: string | null = profile?.avatar_url ?? null;
+          let avatarUrl: string | null = dbProfile?.avatar_url ?? null;
           if (!avatarUrl && googleAvatarUrl) {
             // Seed Google avatar into user_profiles so other browsers get it too
             upsertUserProfile(userId, { avatar_url: googleAvatarUrl }).catch(() => {});
@@ -275,10 +303,11 @@ export const useUserProfile = create<UserProfileState>()(
           }
 
           set({
-            likedTracks:     liked,
-            likedTrackIds:   liked.map((t) => t.id),
+            likedTracks:     dbLiked,
+            likedTrackIds:   dbLiked.map((t) => t.id),
             playlists,
-            recentlyPlayed:  recent,
+            recentlyPlayed:  dbRecent,
+            savedAlbums:     dbAlbums,
             customAvatarUrl: avatarUrl,
           });
 
@@ -295,6 +324,7 @@ export const useUserProfile = create<UserProfileState>()(
         likedTracks:     [],
         recentlyPlayed:  [],
         playlists:       [],
+        savedAlbums:     [],
         customAvatarUrl: null,
       }),
     }),
@@ -307,6 +337,7 @@ export const useUserProfile = create<UserProfileState>()(
         likedTracks:     s.likedTracks,
         recentlyPlayed:  s.recentlyPlayed,
         playlists:       s.playlists,
+        savedAlbums:     s.savedAlbums,
         customAvatarUrl: s.customAvatarUrl,
         // _syncedUserId intentionally excluded — removed from v2
       }),

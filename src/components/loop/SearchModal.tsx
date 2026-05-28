@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Plus, Loader2, Play, Music2, User, Clock, ArrowUpRight } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { AlbumModal } from './AlbumModal';
 import { omniSearchFn, getAlbumDetailsFn, getPlaylistDetailsFn } from '@/functions/search';
 import { LikeButton } from './LikeButton';
 
@@ -187,6 +188,7 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const [query, setQuery]           = useState('');
   const [results, setResults]       = useState<{ tracks: Track[]; albums: any[]; playlists: any[] }>({ tracks: [], albums: [], playlists: [] });
   const [isSearching, setSearching] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
   const [tab, setTab]               = useState<SearchTab>('all');
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -425,10 +427,7 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                       <AlbumRow
                         key={album.id}
                         album={album}
-                        onPlay={async () => {
-                          const tracks = await getAlbumDetailsFn({ data: album });
-                          handlePlayCollection(tracks as Track[]);
-                        }}
+                        onPlay={() => setSelectedAlbum(album)}
                       />
                     ))}
                   </div>
@@ -482,6 +481,12 @@ export function SearchModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             </div>
           </motion.div>
         </motion.div>
+      )}
+      {selectedAlbum && (
+        <AlbumModal
+          album={selectedAlbum}
+          onClose={() => setSelectedAlbum(null)}
+        />
       )}
     </AnimatePresence>
   );

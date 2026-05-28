@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, Heart, Loader2, BookmarkPlus, Check } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { getAlbumDetailsFn } from '@/functions/recommendations';
-import { usePlaylist } from '@/hooks/usePlaylist';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AlbumModalProps {
   album: { id: string; title: string; artist: string; albumArt: string } | null;
@@ -11,11 +12,12 @@ interface AlbumModalProps {
 }
 
 export function AlbumModal({ album, onClose }: AlbumModalProps) {
-  const { playTrack } = usePlayback();
-  const { createPlaylist } = usePlaylist();
+  const { playTrack, setQueue } = usePlayback();
+  const { saveAlbum, isAlbumSaved } = useUserProfile();
+  const { user } = useAuth();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const saved = album ? isAlbumSaved(album.id) : false;
 
   useEffect(() => {
     if (!album) return;
@@ -39,16 +41,20 @@ export function AlbumModal({ album, onClose }: AlbumModalProps) {
 
   const handleInstantPlay = () => {
     if (tracks.length > 0) {
-      // Play the first (or hottest) track instantly
+      // Play the first track and queue the rest
+      setQueue(tracks);
       playTrack(tracks[0]);
     }
   };
 
   const handleSaveAlbum = () => {
     if (tracks.length > 0 && album) {
-      createPlaylist(album.title, tracks);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      saveAlbum({
+        id: album.id,
+        title: album.title,
+        artist: album.artist,
+        albumArt: album.albumArt
+      }, user?.id);
     }
   };
 

@@ -13,6 +13,16 @@ CREATE TABLE IF NOT EXISTS public.liked_songs (
   CONSTRAINT liked_songs_unique UNIQUE (user_id, track_id)
 );
 
+-- ── Saved Albums ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.saved_albums (
+  id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  album_id     text        NOT NULL,
+  album_data   jsonb       NOT NULL,
+  saved_at     timestamptz DEFAULT now(),
+  CONSTRAINT saved_albums_unique UNIQUE (user_id, album_id)
+);
+
 -- ── Playlists ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.playlists (
   id           text        PRIMARY KEY,
@@ -73,8 +83,8 @@ CREATE TRIGGER trim_recently_played_trigger
   AFTER INSERT ON public.recently_played
   FOR EACH ROW EXECUTE FUNCTION public.trim_recently_played();
 
--- ── Row Level Security ────────────────────────────────────────
 ALTER TABLE public.liked_songs       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_albums      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.playlists         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.playlist_tracks   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profiles     ENABLE ROW LEVEL SECURITY;
@@ -82,6 +92,7 @@ ALTER TABLE public.recently_played   ENABLE ROW LEVEL SECURITY;
 
 -- Drop old policies if re-running
 DROP POLICY IF EXISTS "own_liked"             ON public.liked_songs;
+DROP POLICY IF EXISTS "own_saved_albums"      ON public.saved_albums;
 DROP POLICY IF EXISTS "own_playlists"         ON public.playlists;
 DROP POLICY IF EXISTS "own_playlist_tracks"   ON public.playlist_tracks;
 DROP POLICY IF EXISTS "own_profile"           ON public.user_profiles;
@@ -89,6 +100,9 @@ DROP POLICY IF EXISTS "own_recently_played"   ON public.recently_played;
 
 -- Users can only access their own rows
 CREATE POLICY "own_liked" ON public.liked_songs
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "own_saved_albums" ON public.saved_albums
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "own_playlists" ON public.playlists
