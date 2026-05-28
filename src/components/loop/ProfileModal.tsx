@@ -975,14 +975,14 @@ export function ProfileModal({
                         {savedAlbums.length > 0
                           ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                               {savedAlbums.map(album => (
-                                <div key={album.id} className="group relative rounded-xl bg-white/[0.04] p-3 hover:bg-white/[0.06] transition-colors cursor-pointer">
+                                <div 
+                                  key={album.id} 
+                                  onClick={() => setSelectedAlbum(album)}
+                                  className="group relative rounded-xl bg-white/[0.04] p-3 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                                >
                                   <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-white/5">
                                     <img src={album.albumArt} alt="" className="h-full w-full object-cover" />
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedAlbum(album);
-                                      }}
                                       className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
                                       <Play className="h-10 w-10 fill-white text-white" />
