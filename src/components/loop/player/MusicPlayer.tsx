@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
-  Volume2, VolumeX, Search, X, Plus, Loader2, Music2, ListMusic,
-  Mic2, Radio, ChevronRight,
-} from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Volume2, ListMusic, Check, Plus, Repeat, Repeat1, Shuffle, Maximize2, Minimize2, GripVertical } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { hybridSearchFn, getRecommendationsFn } from '@/functions/search';
 import { getLyricsFn, type LyricLine } from '@/functions/lyrics';
 
@@ -281,41 +281,105 @@ function RecommendationsFeed({ currentTrack }: { currentTrack: Track | null }) {
 
 // ─── Queue Panel ─────────────────────────────────────────────────
 
-function QueuePanel() {
-  const { queue, removeFromQueue, playTrack } = usePlayback();
+function SortableQueueItemSmall({ track, index, uniqueId }: { track: any; index: number; uniqueId: string }) {
+  const { removeFromQueue, playTrack } = usePlayback();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: uniqueId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+    zIndex: isDragging ? 999 : undefined,
+  };
+
   return (
-    <div className="h-full overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-      <div className="pb-4 text-[10px] uppercase tracking-widest text-white/30 px-1 pt-2">Queue ({queue.length})</div>
-      {queue.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/20">
-          <ListMusic className="h-8 w-8" />
-          <p className="text-xs">Queue is empty</p>
-        </div>
-      )}
-      <div className="space-y-1">
-        {queue.map((track, i) => (
-          <div key={`${track.id}-${i}`} className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5 transition-colors">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white/10">
-              {track.albumArt && <img src={track.albumArt} alt="" className="h-full w-full object-cover" />}
-              <button
-                onClick={() => playTrack(track)}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Play className="h-3.5 w-3.5 fill-white text-white" />
-              </button>
-            </div>
-            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => playTrack(track)}>
-              <div className="truncate text-xs font-medium text-white/90">{track.title}</div>
-              <div className="truncate text-[11px] text-white/40">{track.artist}</div>
-            </div>
-            <button
-              onClick={() => removeFromQueue(i)}
-              className="shrink-0 rounded-full p-1 text-white/20 hover:text-red-400/70 transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5 transition-colors"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="shrink-0 cursor-grab active:cursor-grabbing text-white/20 hover:text-white/55 transition-colors touch-none"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white/10">
+        {track.albumArt && <img src={track.albumArt} alt="" className="h-full w-full object-cover" />}
+        <button
+          onClick={() => playTrack(track)}
+          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Play className="h-3.5 w-3.5 fill-white text-white" />
+        </button>
+      </div>
+      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => playTrack(track)}>
+        <div className="truncate text-xs font-medium text-white/90">{track.title}</div>
+        <div className="truncate text-[11px] text-white/40">{track.artist}</div>
+      </div>
+      <button
+        onClick={() => removeFromQueue(index)}
+        className="shrink-0 rounded-full p-1 text-white/20 hover:text-red-400/70 transition-colors"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function QueuePanel() {
+  const { queue, reorderQueue } = usePlayback();
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const sortableIds = queue.map((t, i) => `${t.id}-${i}`);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = sortableIds.indexOf(String(active.id));
+    const newIdx = sortableIds.indexOf(String(over.id));
+    if (oldIdx !== -1 && newIdx !== -1) reorderQueue(oldIdx, newIdx);
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="shrink-0 pb-4 text-[10px] uppercase tracking-widest text-white/30 px-1 pt-2">Queue ({queue.length})</div>
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {queue.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/20">
+            <ListMusic className="h-8 w-8" />
+            <p className="text-xs">Queue is empty</p>
           </div>
-        ))}
+        )}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-1">
+              {queue.map((track, i) => (
+                <SortableQueueItemSmall
+                  key={sortableIds[i]}
+                  track={track}
+                  index={i}
+                  uniqueId={sortableIds[i]}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );
