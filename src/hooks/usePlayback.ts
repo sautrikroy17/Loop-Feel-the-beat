@@ -99,9 +99,11 @@ async function backgroundRefill(seedTrack: Track, currentQueue: Track[]) {
   }
 }
 
-export const usePlayback = create<PlaybackState>((set, get) => ({
-  currentTrack: null,
-  queue: [],
+export const usePlayback = create<PlaybackState>()(
+  persist(
+    (set, get) => ({
+      currentTrack: null,
+      queue: [],
   history: [],
   isPlaying: false,
   volume: 80,

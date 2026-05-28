@@ -635,20 +635,14 @@ function ProfileTab({ onClose }: { onClose: () => void }) {
     if (!file.type.startsWith('image/')) return;
     setUploading(true);
     try {
-      // Compress image using canvas → max 240×240px JPEG at 80% quality
-      // Keeps file size ~20-50KB, safe for Postgres text column
-      const compressed = await compressImageToBase64(file, 240, 0.80);
+      const { uploadAvatar } = await import('@/lib/supabase/db');
+      const publicUrl = await uploadAvatar(user.id, file);
 
-      // Save to user_profiles table (syncs across all browsers)
-      const { upsertUserProfile } = await import('@/lib/supabase/db');
-      await upsertUserProfile(user.id, { avatar_url: compressed });
-      
-      // Crucial: Update the auth session itself so it survives page reloads
-      const { supabase } = await import('@/lib/supabase/client');
-      await supabase.auth.updateUser({ data: { avatar_url: compressed } });
-
-      // Update local state immediately (no page reload needed)
-      setCustomAvatarUrl(compressed);
+      if (publicUrl) {
+        setCustomAvatarUrl(publicUrl);
+      } else {
+        console.error('[avatar] Storage upload failed, publicUrl is null');
+      }
     } catch (err) {
       console.error('[avatar] upload failed:', err);
     } finally {
