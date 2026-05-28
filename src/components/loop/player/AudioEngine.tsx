@@ -232,6 +232,28 @@ export function AudioEngine() {
     if (playerRef.current?.setVolume) playerRef.current.setVolume(volume);
   }, [volume]);
 
+  // ── MediaSession Integration (Dynamic Island / Background) ──────
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        artwork: [
+          { src: currentTrack.albumArt, sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+
+      try {
+        navigator.mediaSession.setActionHandler('play', () => usePlayback.getState().setPlaying(true));
+        navigator.mediaSession.setActionHandler('pause', () => usePlayback.getState().setPlaying(false));
+        navigator.mediaSession.setActionHandler('previoustrack', () => usePlayback.getState().prevTrack());
+        navigator.mediaSession.setActionHandler('nexttrack', () => usePlayback.getState().nextTrack());
+      } catch (e) {
+        console.warn('MediaSession action handlers not supported', e);
+      }
+    }
+  }, [currentTrack]);
+
   // ── 6. Prefetch Lyrics ────────────────────────────────────────
   const nextTrackInQueue = usePlayback(s => s.queue[0]);
 

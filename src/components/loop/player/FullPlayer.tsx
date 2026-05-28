@@ -430,7 +430,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   max={100}
                   value={volume}
                   onChange={(e) => setVolume(Number(e.target.value))}
-                  className="flex-1 cursor-pointer accent-[oklch(0.72_0.23_290)]"
+                  className="flex-1 cursor-pointer accent-[oklch(0.72_0.23_290)] thumbless-range"
                 />
                 <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-white/22">
                   {volume}

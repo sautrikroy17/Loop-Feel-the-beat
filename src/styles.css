@@ -596,3 +596,17 @@ img {
     padding-top: 80px !important;
   }
 }
+
+.thumbless-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  display: none;
+}
+.thumbless-range::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  display: none;
+  border: none;
+}

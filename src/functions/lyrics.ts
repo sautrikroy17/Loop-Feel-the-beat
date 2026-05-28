@@ -207,16 +207,32 @@ function extractItem(item: any): LyricResult | null {
 
 /** Pick the best-matching item from a search result array */
 function pickBest(items: any[], targetTitle: string, targetArtist: string): LyricResult | null {
-  // Score each candidate by title similarity
+  const tArtistLower = targetArtist.toLowerCase();
+  
   const scored = items
-    .map((item) => ({
-      item,
-      score: similarity(item.trackName ?? '', targetTitle) * 0.7
-           + similarity(item.artistName ?? '', targetArtist) * 0.3,
-    }))
+    .map((item) => {
+      const itemTitle = (item.trackName ?? '').toLowerCase();
+      const itemArtist = (item.artistName ?? '').toLowerCase();
+      
+      const titleScore = similarity(itemTitle, targetTitle.toLowerCase());
+      
+      // Much more forgiving artist score: if any word matches, it's a huge boost
+      let artistScore = similarity(itemArtist, tArtistLower);
+      const tWords = tArtistLower.split(/[\s,;&]+/).filter(w => w.length > 2);
+      const iWords = itemArtist.split(/[\s,;&]+/).filter(w => w.length > 2);
+      
+      const sharesWord = tWords.some(tw => iWords.some(iw => tw.includes(iw) || iw.includes(tw)));
+      if (sharesWord) artistScore = Math.max(artistScore, 0.8);
+
+      return {
+        item,
+        score: titleScore * 0.65 + artistScore * 0.35,
+      };
+    })
     .sort((a, b) => b.score - a.score);
 
-  for (const { item } of scored.slice(0, 6)) {
+  for (const { item, score } of scored) {
+    if (score < 0.4) continue; // safety threshold
     const r = extractItem(item);
     if (r) return r;
   }
