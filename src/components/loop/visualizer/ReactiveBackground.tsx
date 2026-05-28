@@ -16,6 +16,7 @@
 
 import { subscribeToAudio } from '@/hooks/useAudioData';
 import { useSettings } from '@/hooks/useSettings';
+import { useRef, useEffect } from 'react';
 
 export function ReactiveBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
