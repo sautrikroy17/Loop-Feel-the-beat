@@ -47,10 +47,15 @@ CREATE TABLE IF NOT EXISTS public.playlist_tracks (
 
 -- ── User Profiles (custom avatar, display name) ────────────────
 CREATE TABLE IF NOT EXISTS public.user_profiles (
-  id           uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  avatar_url   text,
-  display_name text,
-  updated_at   timestamptz DEFAULT now()
+  id             uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  avatar_url     text,
+  display_name   text,
+  top_artists    jsonb,
+  top_genres     jsonb,
+  mood_history   text,
+  daily_mix      jsonb,
+  daily_mix_date text,
+  updated_at     timestamptz DEFAULT now()
 );
 
 -- ── Recently Played ───────────────────────────────────────────
