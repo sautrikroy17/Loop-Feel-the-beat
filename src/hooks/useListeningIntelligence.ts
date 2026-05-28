@@ -104,6 +104,8 @@ interface IntelligenceState {
   getStats: () => ListeningStats;
   getRecentArtists: (n?: number) => string[];
   getTasteIdentity: () => string;
+  activeMood: string | null;
+  setActiveMood: (mood: string | null) => void;
 }
 
 const MAX_EVENTS = 200;
@@ -114,6 +116,9 @@ export const useListeningIntelligence = create<IntelligenceState>()(
       events: [],
       genreWeights: {},
       artistWeights: {},
+      activeMood: null,
+
+      setActiveMood: (mood) => set({ activeMood: mood }),
 
       recordPlay: (raw) => {
         const genres = inferGenres(raw.title, raw.artist);
@@ -181,12 +186,12 @@ export const useListeningIntelligence = create<IntelligenceState>()(
 
       getTopReplayedTracks: (n = 3) => {
         const events = get().events;
-        const trackScores: Record<string, { title: string; artist: string; score: number }> = {};
+        const trackScores: Record<string, { title: string; artist: string; videoId: string; score: number }> = {};
         
         for (const e of events) {
           const key = `${e.title}|${e.artist}`;
           if (!trackScores[key]) {
-            trackScores[key] = { title: e.title, artist: e.artist, score: 0 };
+            trackScores[key] = { title: e.title, artist: e.artist, videoId: e.trackId, score: 0 };
           }
           trackScores[key].score += (e.repeated ? 3 : 0) + (e.completed ? 1 : 0);
         }

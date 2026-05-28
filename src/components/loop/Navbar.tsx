@@ -7,10 +7,19 @@ import { LoopLogo } from './LoopLogo';
 import { signInWithGoogle } from '@/lib/supabase/auth';
 
 const GENRE_ICONS: Record<string, string> = {
-  lofi: '☕', phonk: '🚗', trap: '🔥', house: '🪩', rnb: '🖤',
-  jazz: '🎷', indie: '🌻', hiphop: '🎤', pop: '✨', classical: '🎻',
-  rock: '🎸', bollywood: '🌊', kpop: '💕', slowed: '🌙', synthwave: '🌃',
-  acoustic: '🏕️', afrobeats: '🌴', latin: '💃'
+  'Dark R&B': '🖤',
+  'Atmospheric Trap': '🌌',
+  'Sad Girl Pop': '💧',
+  'Shoegaze': '🎸',
+  'Bollywood Romance': '🌊',
+  'Punjabi Heat': '🌶️',
+  'Desi Trap': '🔥',
+  'Lo-Fi Study': '☕',
+  'Phonk': '🚗',
+  'Hyperpop': '⚡',
+  'Pop': '✨',
+  'Hip-Hop': '🎤',
+  'House': '🪩'
 };
 
 function toTitleCase(str: string) {
@@ -49,7 +58,7 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
   const intel     = useListeningIntelligence();
   const topGenre  = intel.getTopGenres(1)[0] ?? '';
   const vibeIcon  = GENRE_ICONS[topGenre] ?? '🎵';
-  const moodBadge = topGenre ? `${vibeIcon} ${toTitleCase(topGenre)}` : '';
+  const moodBadge = topGenre ? `${vibeIcon} ${topGenre}` : '';
   const hasData   = intel.events.length > 0;
   const { user }  = useAuth();
   const { customAvatarUrl } = useUserProfile();

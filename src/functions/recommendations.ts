@@ -27,7 +27,7 @@ interface PersonalizedSeed {
   topGenres?: string[];      // e.g. ['lofi', 'phonk', 'bollywood']
   topArtists?: string[];     // e.g. ['arijit singh', 'the weeknd']
   recentArtists?: string[];
-  topReplayedTracks?: { title: string; artist: string }[];
+  topReplayedTracks?: { title: string; artist: string; videoId?: string }[];
   genre?: string;            // single primary genre hint
   tasteIdentity?: string;
 }
@@ -68,12 +68,22 @@ function isPremiumTrack(t: DiscoveryTrack): boolean {
 }
 
 function deduplicateTracks(tracks: DiscoveryTrack[]): DiscoveryTrack[] {
-  const seen = new Set<string>();
+  const seenTitles = new Set<string>();
+  const artistCount = new Map<string, number>();
   const unique: DiscoveryTrack[] = [];
+  
   for (const t of tracks) {
-    const key = t.title.toLowerCase().trim();
-    if (!seen.has(key)) {
-      seen.add(key);
+    // Aggressive fuzzy title extraction: strip everything after (, [, or - 
+    let coreTitle = t.title.toLowerCase().trim();
+    coreTitle = coreTitle.split('(')[0].split('[')[0].split('-')[0].trim();
+    
+    // Allow max 2 tracks by the same artist in a single row to force diversity
+    const artistKey = t.artist.toLowerCase().trim();
+    const currentArtistCount = artistCount.get(artistKey) || 0;
+    
+    if (!seenTitles.has(coreTitle) && currentArtistCount < 2) {
+      seenTitles.add(coreTitle);
+      artistCount.set(artistKey, currentArtistCount + 1);
       unique.push(t);
     }
   }
@@ -163,8 +173,10 @@ export const getDiscoverySectionsFn = createServerFn({ method: 'GET' })
       trackId
         ? getRelatedTracks(trackId, 20).then(t => t.map(toTrack))
         : searchYouTubeMusic(qForYou, 20).then(t => t.map(toTrack)),
-      // Based on Top Loop
-      searchYouTubeMusic(qBasedOn, 18).then(t => t.map(toTrack)),
+      // Based on Top Loop: TRUE Sonic Radio
+      t1 && t1.videoId 
+        ? getRelatedTracks(t1.videoId, 20).then(t => t.map(toTrack))
+        : searchYouTubeMusic(qBasedOn, 18).then(t => t.map(toTrack)),
       // Fetch dynamic trending albums for the top artist (so we never hit "compilation" albums)
       searchAlbums(primaryArtist ? `${primaryArtist}` : `${g1} trending albums`, 10),
     ];
