@@ -1,11 +1,81 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, ChevronUp, Volume2, VolumeX, Loader2, Mic2, Shuffle, Repeat, Repeat1, Infinity } from 'lucide-react';
-import { useState } from 'react';
+import { Play, Pause, SkipBack, SkipForward, ChevronUp, Volume2, VolumeX, Loader2, Mic2, Shuffle, Repeat, Repeat1, Infinity, ListPlus, FolderPlus, Check } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { usePlayback } from '@/hooks/usePlayback';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 function fmt(s: number): string {
   if (!s || isNaN(s)) return '0:00';
   return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+}
+
+/** Mini playlist picker popup */
+function PlaylistPickerPopup({ onClose }: { onClose: () => void }) {
+  const { playlists, addTrackToPlaylist } = useUserProfile();
+  const { currentTrack } = usePlayback();
+  const [added, setAdded] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const handleAdd = (playlistId: string) => {
+    if (!currentTrack) return;
+    addTrackToPlaylist(playlistId, currentTrack);
+    setAdded(playlistId);
+    setTimeout(() => { onClose(); }, 800);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+      transition={{ duration: 0.15 }}
+      className="absolute bottom-full right-0 mb-2 w-52 overflow-hidden rounded-2xl border border-white/[0.08] shadow-2xl"
+      style={{ background: 'oklch(0.08 0.025 260 / 0.97)', backdropFilter: 'blur(24px)' }}
+    >
+      <div className="px-3 py-2 text-[10px] font-medium uppercase tracking-[0.3em] text-white/30 border-b border-white/[0.06]">
+        Add to Playlist
+      </div>
+      {playlists.length === 0 ? (
+        <div className="px-3 py-4 text-center text-xs text-white/30">
+          No playlists yet
+        </div>
+      ) : (
+        <div className="max-h-56 overflow-y-auto py-1" style={{ scrollbarWidth: 'none' }}>
+          {playlists.map(p => (
+            <button
+              key={p.id}
+              onClick={() => handleAdd(p.id)}
+              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+            >
+              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-white/[0.06] flex items-center justify-center">
+                {p.coverArt
+                  ? <img src={p.coverArt} alt="" className="h-full w-full object-cover" />
+                  : <span className="text-[10px] text-white/30">♪</span>
+                }
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12px] font-medium text-white/80">{p.name}</div>
+                <div className="text-[10px] text-white/35">{p.tracks.length} tracks</div>
+              </div>
+              {added === p.id && (
+                <Check className="h-3.5 w-3.5 shrink-0 text-[oklch(0.72_0.26_248)]" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
 }
 
 export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKaraoke: () => void }) {
@@ -13,14 +83,24 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
     currentTrack, isPlaying, progress, duration, volume, isLoadingTrack,
     isShuffle, repeatMode, isAutoplay,
     togglePlayPause, nextTrack, prevTrack, seekTo, setVolume,
-    toggleShuffle, toggleRepeat, toggleAutoplay
+    toggleShuffle, toggleRepeat, toggleAutoplay,
+    addToQueue,
   } = usePlayback();
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragVal, setDragVal] = useState(0);
+  const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
+  const [queueAdded, setQueueAdded] = useState(false);
 
   const pct = duration > 0 ? (progress / duration) * 100 : 0;
   const displayTime = isDragging ? dragVal : progress;
+
+  const handleAddToQueue = () => {
+    if (!currentTrack) return;
+    addToQueue(currentTrack);
+    setQueueAdded(true);
+    setTimeout(() => setQueueAdded(false), 1200);
+  };
 
   return (
     <AnimatePresence>
@@ -32,7 +112,7 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
           className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06]"
-          style={{ background: 'oklch(0.05 0.022 260 / 0.97)', backdropFilter: 'blur(32px) saturate(180%)' }}
+          style={{ background: 'oklch(0.06 0.024 260 / 0.97)', backdropFilter: 'blur(32px) saturate(180%)' }}
         >
           {/* Thin progress line at very top edge */}
           <div className="h-[2px] w-full bg-white/20 shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
@@ -49,9 +129,9 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
             {/* Album art + track info → click to expand */}
             <button
               onClick={onExpand}
-              className="group flex min-w-0 flex-1 items-center gap-3 text-left sm:flex-none sm:w-64"
+              className="group flex min-w-0 flex-1 items-center gap-3 text-left sm:flex-none sm:w-52"
             >
-              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white/8">
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white/8">
                 {currentTrack.albumArt && (
                   <img src={currentTrack.albumArt} alt="" className="h-full w-full object-cover" />
                 )}
@@ -67,6 +147,32 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
               </div>
               <ChevronUp className="h-4 w-4 shrink-0 text-white/25 transition-colors group-hover:text-white/60" />
             </button>
+
+            {/* Quick action: Add to Queue + Add to Playlist */}
+            <div className="hidden shrink-0 items-center gap-1 sm:flex relative">
+              <button
+                onClick={handleAddToQueue}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/5 ${queueAdded ? 'text-[oklch(0.72_0.26_248)]' : 'text-white/30 hover:text-white/70'}`}
+                title="Add to Queue"
+              >
+                {queueAdded ? <Check className="h-3.5 w-3.5" /> : <ListPlus className="h-4 w-4" />}
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowPlaylistPicker(v => !v)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/5 ${showPlaylistPicker ? 'text-[oklch(0.72_0.26_248)] bg-white/5' : 'text-white/30 hover:text-white/70'}`}
+                  title="Add to Playlist"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </button>
+                <AnimatePresence>
+                  {showPlaylistPicker && (
+                    <PlaylistPickerPopup onClose={() => setShowPlaylistPicker(false)} />
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
 
             {/* Playback controls */}
             <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">

@@ -20,12 +20,23 @@ interface NavbarProps {
 
 export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryOpen }: NavbarProps) {
   const { scrollY } = useScroll();
-  const bg = useTransform(
+
+  // Pill fills in with background on scroll
+  const pillBg = useTransform(
     scrollY,
-    [0, 80],
-    ['oklch(0.04 0.024 258 / 0)', 'oklch(0.05 0.022 260 / 0.95)'],
+    [0, 60],
+    ['oklch(0.07 0.028 260 / 0.3)', 'oklch(0.07 0.028 260 / 0.88)'],
   );
-  const borderOp = useTransform(scrollY, [40, 80], [0, 1]);
+  const pillBorder = useTransform(
+    scrollY,
+    [0, 60],
+    ['oklch(1 0 0 / 0.05)', 'oklch(1 0 0 / 0.10)'],
+  );
+  const pillBlur = useTransform(
+    scrollY,
+    [0, 60],
+    ['blur(12px) saturate(140%)', 'blur(24px) saturate(180%)'],
+  );
 
   const intel     = useListeningIntelligence();
   const mood      = intel.getCurrentMood();
@@ -34,31 +45,31 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
   const { user } = useAuth();
 
   return (
-    <motion.header
-      style={{ background: bg }}
-      className="fixed inset-x-0 top-0 z-40 backdrop-blur-2xl"
-    >
-      <motion.div
-        style={{ opacity: borderOp }}
-        className="absolute inset-x-0 bottom-0 h-px bg-white/[0.07]"
-      />
-
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    /* Fixed container that spans full width but only to position the pill */
+    <div className="fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4">
+      <motion.nav
+        style={{
+          background: pillBg,
+          borderColor: pillBorder,
+          backdropFilter: pillBlur,
+          WebkitBackdropFilter: pillBlur as unknown as string,
+        }}
+        className="flex w-full max-w-4xl items-center justify-between rounded-2xl border px-4 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)]"
+      >
         {/* Logo */}
-        <a href="#top" className="flex items-center gap-0">
-          <LoopLogo size={30} showText={true} textSize="text-[17px]" />
+        <a href="#top" className="flex items-center gap-0 shrink-0">
+          <LoopLogo size={28} showText={true} textSize="text-[15px]" />
         </a>
 
-        {/* Center nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        {/* Center nav links */}
+        <nav className="hidden items-center gap-0.5 md:flex">
           <NavLink href="#top">Home</NavLink>
           <NavLink href="#discover">Discover</NavLink>
-          {/* Mood badge — shows current detected vibe */}
           {hasData && moodBadge && (
             <motion.span
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="rounded-full px-3 py-1 text-[11px] font-medium"
+              className="ml-1 rounded-full px-3 py-1 text-[11px] font-medium"
               style={{
                 background: 'oklch(0.72 0.26 248 / 0.10)',
                 color: 'oklch(0.82 0.20 248)',
@@ -71,14 +82,14 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
         </nav>
 
         {/* Right actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Search pill */}
           <button
             onClick={onSearchOpen}
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/50 backdrop-blur-sm transition-colors hover:bg-white/[0.08] hover:text-white/80"
+            className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-sm text-white/50 transition-all hover:bg-white/[0.10] hover:text-white/80"
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:block">Search</span>
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:block text-xs">Search</span>
             <kbd className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/35 sm:inline-block">
               ⌘K
             </kbd>
@@ -87,31 +98,31 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
           {/* Library */}
           <button
             onClick={onLibraryOpen}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/45 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/45 transition-all hover:bg-white/[0.09] hover:text-white/80"
             title="Your Library"
           >
-            <ListMusic className="h-4 w-4" />
+            <ListMusic className="h-3.5 w-3.5" />
           </button>
 
-          {/* Profile — glows when intelligence data exists */}
+          {/* Profile */}
           <button
             onClick={onProfileOpen}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:text-white/80"
+            className="relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all hover:text-white/80 overflow-hidden"
             style={{
-              borderColor: hasData ? 'oklch(0.72 0.26 248 / 0.35)' : 'oklch(1 0 0 / 0.10)',
-              background:  hasData ? 'oklch(0.72 0.26 248 / 0.10)' : 'oklch(1 0 0 / 0.05)',
+              borderColor: hasData ? 'oklch(0.72 0.26 248 / 0.35)' : 'oklch(1 0 0 / 0.08)',
+              background:  hasData ? 'oklch(0.72 0.26 248 / 0.10)' : 'oklch(1 0 0 / 0.04)',
               color:       hasData ? 'oklch(0.82 0.22 248)'          : 'oklch(1 0 0 / 0.45)',
             }}
             title="Profile & Stats"
           >
             {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full rounded-full object-cover" />
+              <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
             ) : (
-              <User className="h-4 w-4" />
+              <User className="h-3.5 w-3.5" />
             )}
             {hasData && !user && (
               <span
-                className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full"
+                className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full"
                 style={{ background: 'oklch(0.72 0.26 248)' }}
               />
             )}
@@ -120,23 +131,22 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
           {/* Settings */}
           <button
             onClick={onSettingsOpen}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/45 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/45 transition-all hover:bg-white/[0.09] hover:text-white/80"
             title="Settings (,)"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-3.5 w-3.5" />
           </button>
         </div>
-      </div>
-    </motion.header>
+      </motion.nav>
+    </div>
   );
 }
-
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <a
       href={href}
-      className="rounded-lg px-3 py-2 text-sm text-white/45 transition-colors hover:text-white"
+      className="rounded-lg px-3 py-1.5 text-sm text-white/45 transition-colors hover:bg-white/[0.05] hover:text-white"
     >
       {children}
     </a>

@@ -14,6 +14,7 @@ export interface Playlist {
   name: string;
   tracks: Track[];
   createdAt: number;
+  coverArt?: string; // base64 data URL from desktop file picker
 }
 
 interface UserProfileState {
@@ -26,7 +27,7 @@ interface UserProfileState {
   unlikeTrack: (id: string) => void;
   isLiked: (id: string) => boolean;
   addToRecentlyPlayed: (track: Track) => void;
-  createPlaylist: (name: string) => Playlist;
+  createPlaylist: (name: string, coverArt?: string) => Playlist;
   deletePlaylist: (id: string) => void;
   addTrackToPlaylist: (playlistId: string, track: Track) => void;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => void;
@@ -62,12 +63,13 @@ export const useUserProfile = create<UserProfileState>()(
           return { recentlyPlayed: [track, ...filtered].slice(0, 50) };
         }),
 
-      createPlaylist: (name) => {
+      createPlaylist: (name, coverArt) => {
         const playlist: Playlist = {
           id: `pl_${Date.now()}`,
           name,
           tracks: [],
           createdAt: Date.now(),
+          ...(coverArt ? { coverArt } : {}),
         };
         set((s) => ({ playlists: [playlist, ...s.playlists] }));
         return playlist;
