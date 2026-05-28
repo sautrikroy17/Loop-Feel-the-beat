@@ -7,9 +7,10 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Plus, Music2, Activity, TrendingUp } from 'lucide-react';
+import { Play, Plus, Music2, Lock, LogIn } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { useDiscovery, type DiscoverySection } from '@/hooks/useDiscovery';
+import { useAuth } from '@/hooks/useAuth';
 import { LikeButton } from './LikeButton';
 import { Reveal } from './Reveal';
 import { DailyMix } from './DailyMix';
@@ -40,7 +41,7 @@ function TrackCard({ track, index = 0 }: { track: Track; index?: number }) {
       whileInView={{ rotateX: 0, opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
       transition={{ duration: 0.8, type: "spring", bounce: 0.35, delay: index * 0.05 }}
-      className="group relative w-44 shrink-0 select-none"
+      className="group relative w-36 sm:w-44 shrink-0 select-none"
       style={{ transformStyle: 'preserve-3d' }}
     >
       <div
@@ -243,11 +244,45 @@ function Divider() {
   );
 }
 
+// ─── Guest Mode Gate ──────────────────────────────────────────────
+
+function GuestGate() {
+  return (
+    <Reveal>
+      <div className="relative overflow-hidden rounded-3xl border border-white/[0.07] p-8 sm:p-12 text-center"
+        style={{ background: 'linear-gradient(135deg, oklch(0.09 0.025 265 / 0.9), oklch(0.06 0.020 255 / 0.95))' }}
+      >
+        {/* Ambient glow */}
+        <div className="absolute inset-0 -z-0 opacity-30" style={{ background: 'radial-gradient(ellipse at 50% 0%, oklch(0.65 0.22 290 / 0.4) 0%, transparent 70%)' }} />
+        
+        <div className="relative z-10">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]">
+            <Lock className="h-7 w-7 text-white/60" />
+          </div>
+          <h3 className="mb-2 text-xl font-bold text-white">Unlock Your Taste</h3>
+          <p className="mb-6 text-sm text-white/40 max-w-xs mx-auto leading-relaxed">
+            Log in to get personalised mixes, AI recommendations, and a feed that truly knows you.
+          </p>
+          <a
+            href="/login"
+            className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white shadow-xl transition-all hover:scale-105 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, oklch(0.72 0.23 290), oklch(0.65 0.21 244))' }}
+          >
+            <LogIn className="h-4 w-4" />
+            Log in to Loop
+          </a>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────
 
 export function RecommendationFeed() {
   const { sections, isLoading, hasLoaded } = useDiscovery();
   const { currentTrack } = usePlayback();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [selectedAlbum, setSelectedAlbum] = useState<any>(null);
 
   const aiMixSection = sections.find(s => s.id === 'ai-mix');
@@ -255,8 +290,8 @@ export function RecommendationFeed() {
   const otherSections = sections.filter(s => s.id !== 'ai-mix' && s.id !== 'chart-0');
 
   return (
-    <section id="discover" className="relative px-6 py-28">
-      <div className="mx-auto max-w-6xl space-y-20">
+    <section id="discover" className="relative px-4 sm:px-6 py-16 sm:py-28">
+      <div className="mx-auto max-w-6xl space-y-14 sm:space-y-20">
 
         {/* Header */}
         <Reveal>
@@ -264,7 +299,7 @@ export function RecommendationFeed() {
             <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.4em] text-white/22">
               Discover
             </p>
-            <h2 className="font-display text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.06] tracking-tight text-white">
+            <h2 className="font-display text-[clamp(1.8rem,5vw,3.2rem)] font-semibold leading-[1.06] tracking-tight text-white">
               {currentTrack
                 ? `Deep in ${currentTrack.artist}'s world.`
                 : "Tracks you didn't know you needed."}
@@ -277,11 +312,15 @@ export function RecommendationFeed() {
           </div>
         </Reveal>
 
-        {aiMixSection && <AIHeroMix section={aiMixSection as any} />}
+        {/* Guest mode — show login gate instead of personalised AI mix */}
+        {!authLoading && !isLoggedIn && <GuestGate />}
+
+        {/* Logged-in personalised sections */}
+        {!authLoading && isLoggedIn && aiMixSection && <AIHeroMix section={aiMixSection as any} />}
         
         {trendingSection && <TrendingNowHero section={trendingSection as any} />}
 
-        <DailyMix />
+        {isLoggedIn && <DailyMix />}
 
         <Divider />
 
