@@ -620,9 +620,27 @@ function ProfileTab({ onClose }: { onClose: () => void }) {
         <h3 className="text-xl font-bold text-white">{user?.user_metadata?.full_name || 'Guest User'}</h3>
         <p className="text-sm text-white/40">{user?.email || 'Sign in to sync your profile'}</p>
         {user ? (
-          <button onClick={() => signOut()} className="mt-5 rounded-xl bg-white/10 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-white/20">Sign Out</button>
+          <button
+            onClick={async () => {
+              try {
+                await signOut();
+              } catch { /* ignore */ } finally {
+                window.location.href = '/';
+              }
+            }}
+            className="mt-5 rounded-xl bg-white/10 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-white/20"
+          >
+            Sign Out
+          </button>
         ) : (
-          <Link to="/login" onClick={onClose} className="mt-5 flex items-center justify-center rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">Sign In with Google</Link>
+          <Link
+            to="/login"
+            onClick={onClose}
+            className="mt-5 flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold text-white transition-all hover:scale-[1.02]"
+            style={{ background: 'linear-gradient(135deg, oklch(0.72 0.26 248), oklch(0.68 0.24 286))' }}
+          >
+            Continue with Google
+          </Link>
         )}
       </div>
 

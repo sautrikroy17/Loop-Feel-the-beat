@@ -1,8 +1,9 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Search, Settings, User, Library } from 'lucide-react';
+import { Search, Settings, User, Library, LogIn } from 'lucide-react';
 import { useListeningIntelligence } from '@/hooks/useListeningIntelligence';
 import { useAuth } from '@/hooks/useAuth';
 import { LoopLogo } from './LoopLogo';
+import { signInWithGoogle } from '@/lib/supabase/auth';
 
 const MOOD_BADGES: Record<string, string> = {
   focus: '🎯 Focus', chill: '🌊 Chill', 'night-drive': '🌙 Night',
@@ -106,29 +107,38 @@ export function Navbar({ onSearchOpen, onSettingsOpen, onProfileOpen, onLibraryO
             </kbd>
           </button>
 
-          {/* Profile */}
-          <button
-            onClick={onProfileOpen}
-            className="relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all hover:text-white/80 overflow-hidden"
-            style={{
-              borderColor: hasData ? 'oklch(0.72 0.26 248 / 0.35)' : 'oklch(1 0 0 / 0.08)',
-              background:  hasData ? 'oklch(0.72 0.26 248 / 0.10)' : 'oklch(1 0 0 / 0.04)',
-              color:       hasData ? 'oklch(0.82 0.22 248)'         : 'oklch(1 0 0 / 0.45)',
-            }}
-            title="Profile & Stats"
-          >
-            {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-3.5 w-3.5" />
-            )}
-            {hasData && !user && (
-              <span
-                className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full"
-                style={{ background: 'oklch(0.72 0.26 248)' }}
-              />
-            )}
-          </button>
+          {/* Guest: Login button / Logged in: Profile */}
+          {!user ? (
+            <button
+              onClick={signInWithGoogle}
+              className="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[12px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                borderColor: 'oklch(0.72 0.26 248 / 0.35)',
+                background: 'linear-gradient(135deg, oklch(0.72 0.26 248 / 0.15), oklch(0.68 0.24 286 / 0.15))',
+                color: 'oklch(0.85 0.20 248)',
+              }}
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              Login
+            </button>
+          ) : (
+            <button
+              onClick={onProfileOpen}
+              className="relative flex h-8 w-8 items-center justify-center rounded-xl border transition-all hover:text-white/80 overflow-hidden"
+              style={{
+                borderColor: hasData ? 'oklch(0.72 0.26 248 / 0.35)' : 'oklch(1 0 0 / 0.08)',
+                background:  hasData ? 'oklch(0.72 0.26 248 / 0.10)' : 'oklch(1 0 0 / 0.04)',
+                color:       hasData ? 'oklch(0.82 0.22 248)'         : 'oklch(1 0 0 / 0.45)',
+              }}
+              title="Profile & Stats"
+            >
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
 
           {/* Settings */}
           <button

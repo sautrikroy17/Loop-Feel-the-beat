@@ -1,128 +1,143 @@
 /**
- * AmbientBackground — dark minimalistic gradient aesthetic
+ * AmbientBackground — ULTRA premium dark gradient aesthetic
  *
- * Design: Very dark navy base with VIVID, visible gradient orbs.
- * The key is strong orb opacity/chroma so they pierce the dark base.
- * - Top-left: electric blue-violet (dominant)
- * - Right-center: deep purple
- * - Bottom: violet fade-out prevents pure black
- * - Fine dot grid + film grain for premium texture
+ * Design intent: "It should feel like you're inside the music."
+ *
+ * Very dark navy base + VIVID, punchy gradient orbs.
+ * Heavy chroma + high opacity = gradient you can FEEL, not just see.
+ * Animated breathing motion keeps it alive.
  */
 export function AmbientBackground() {
   return (
     <div
       aria-hidden
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-      style={{
-        // Very dark navy base with subtle purple tint
-        background: `
-          radial-gradient(ellipse at 18% 12%,
-            oklch(0.19 0.08 268) 0%,
-            oklch(0.10 0.04 268) 40%,
-            oklch(0.075 0.028 265) 100%)
-        `,
-      }}
     >
-      {/* ── Top-left: Strong blue-violet primary orb ── */}
+      {/* ── Base: Deep navy — NOT pitch black ── */}
       <div
-        className="absolute"
+        className="absolute inset-0"
         style={{
-          width: '140vw',
-          height: '110vh',
-          top: '-20%',
-          left: '-20%',
-          background: 'radial-gradient(circle at center, oklch(0.38 0.18 262 / 0.52) 0%, oklch(0.28 0.14 268 / 0.25) 40%, transparent 65%)',
-          animation: 'amb-a 26s infinite alternate ease-in-out',
-          willChange: 'transform',
+          background: `
+            radial-gradient(ellipse 120% 100% at 15% 10%,
+              oklch(0.22 0.10 268) 0%,
+              oklch(0.12 0.05 265) 45%,
+              oklch(0.082 0.030 268) 100%)
+          `,
         }}
       />
 
-      {/* ── Right-center: Purple accent orb ── */}
-      <div
-        className="absolute"
-        style={{
-          width: '110vw',
-          height: '110vh',
-          top: '5%',
-          right: '-25%',
-          background: 'radial-gradient(circle at center, oklch(0.32 0.16 288 / 0.44) 0%, oklch(0.22 0.10 285 / 0.20) 45%, transparent 65%)',
-          animation: 'amb-b 33s infinite alternate-reverse ease-in-out',
-          willChange: 'transform',
-        }}
-      />
-
-      {/* ── Center-low: Subtle violet bridge ── */}
-      <div
-        className="absolute"
-        style={{
-          width: '85vw',
-          height: '75vh',
-          top: '40%',
-          left: '22%',
-          background: 'radial-gradient(circle at center, oklch(0.22 0.10 276 / 0.28) 0%, transparent 70%)',
-          animation: 'amb-c 21s infinite alternate ease-in-out',
-          willChange: 'transform, opacity',
-        }}
-      />
-
-      {/* ── Bottom: Fill glow — no black cutoff ── */}
+      {/* ── Orb 1: Electric blue-violet — top-left dominant ── */}
       <div
         className="absolute"
         style={{
           width: '130vw',
-          height: '70vh',
-          bottom: '-25%',
-          left: '-15%',
-          background: 'radial-gradient(ellipse at 50% 90%, oklch(0.24 0.10 272 / 0.50) 0%, oklch(0.14 0.06 270 / 0.25) 50%, transparent 75%)',
+          height: '120vh',
+          top: '-25%',
+          left: '-18%',
+          background: 'radial-gradient(circle at center, oklch(0.45 0.22 262 / 0.65) 0%, oklch(0.32 0.16 268 / 0.35) 42%, transparent 65%)',
+          animation: 'amb-a 24s infinite alternate ease-in-out',
+          willChange: 'transform, opacity',
         }}
       />
 
-      {/* ── Bottom-right corner teal ── */}
+      {/* ── Orb 2: Deep violet — right side ── */}
       <div
         className="absolute"
         style={{
-          width: '70vw',
-          height: '50vh',
-          bottom: '-10%',
-          right: '-5%',
-          background: 'radial-gradient(circle at center, oklch(0.20 0.09 252 / 0.32) 0%, transparent 65%)',
-          animation: 'amb-a 19s 4s infinite alternate ease-in-out',
+          width: '120vw',
+          height: '120vh',
+          top: '-5%',
+          right: '-22%',
+          background: 'radial-gradient(circle at center, oklch(0.38 0.20 288 / 0.58) 0%, oklch(0.26 0.13 285 / 0.28) 44%, transparent 65%)',
+          animation: 'amb-b 31s infinite alternate-reverse ease-in-out',
+          willChange: 'transform, opacity',
         }}
       />
 
-      <style>{`
-        @keyframes amb-a {
-          0%   { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 0.65; }
-          100% { transform: scale(1.22) translate(8%, 5%) rotate(10deg); opacity: 0.95; }
-        }
-        @keyframes amb-b {
-          0%   { transform: scale(1.1) translate(0, 0) rotate(0deg); opacity: 0.70; }
-          100% { transform: scale(0.88) translate(-12%, -8%) rotate(-7deg); opacity: 1.0; }
-        }
-        @keyframes amb-c {
-          0%   { transform: scale(0.85) translate(6%, -8%); opacity: 0.45; }
-          100% { transform: scale(1.30) translate(-6%, 8%); opacity: 0.80; }
-        }
-      `}</style>
+      {/* ── Orb 3: Cyan teal accent — bottom-left ── */}
+      <div
+        className="absolute"
+        style={{
+          width: '90vw',
+          height: '85vh',
+          bottom: '-20%',
+          left: '-5%',
+          background: 'radial-gradient(circle at center, oklch(0.35 0.18 240 / 0.48) 0%, oklch(0.22 0.10 245 / 0.22) 48%, transparent 68%)',
+          animation: 'amb-c 19s infinite alternate ease-in-out',
+          willChange: 'transform, opacity',
+        }}
+      />
 
-      {/* ── Fine dot grid ── */}
+      {/* ── Orb 4: Purple — bottom-right corner ── */}
+      <div
+        className="absolute"
+        style={{
+          width: '80vw',
+          height: '70vh',
+          bottom: '-15%',
+          right: '-8%',
+          background: 'radial-gradient(circle at center, oklch(0.30 0.16 292 / 0.45) 0%, transparent 62%)',
+          animation: 'amb-a 22s 5s infinite alternate-reverse ease-in-out',
+        }}
+      />
+
+      {/* ── Center bloom: Subtle mid-screen glow ── */}
+      <div
+        className="absolute"
+        style={{
+          width: '100vw',
+          height: '80vh',
+          top: '30%',
+          left: '15%',
+          background: 'radial-gradient(ellipse at center, oklch(0.25 0.11 275 / 0.32) 0%, transparent 65%)',
+          animation: 'amb-c 28s 2s infinite alternate ease-in-out',
+        }}
+      />
+
+      {/* ── Vignette: Pull edges to dark ── */}
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.06) 1px, transparent 1px)',
-          backgroundSize: '52px 52px',
-          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 35%, black 10%, transparent 80%)',
+          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 30%, oklch(0.04 0.02 265 / 0.55) 80%, oklch(0.04 0.02 265 / 0.85) 100%)',
+        }}
+      />
+
+      {/* ── Dot grid (very subtle) ── */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, oklch(1 0 0 / 0.055) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+          maskImage: 'radial-gradient(ellipse 75% 55% at 50% 32%, black 10%, transparent 78%)',
         }}
       />
 
       {/* ── Film grain ── */}
       <div
-        className="absolute inset-0 opacity-[0.035] mix-blend-soft-light"
+        className="absolute inset-0 opacity-[0.040] mix-blend-soft-light"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.90' numOctaves='4' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
       />
+
+      <style>{`
+        @keyframes amb-a {
+          0%   { transform: scale(1)    translate(0, 0)      rotate(0deg);   opacity: 0.70; }
+          50%  { transform: scale(1.12) translate(4%, 3%)    rotate(5deg);   opacity: 0.90; }
+          100% { transform: scale(1.25) translate(9%, 6%)    rotate(12deg);  opacity: 1.0;  }
+        }
+        @keyframes amb-b {
+          0%   { transform: scale(1.1)  translate(0, 0)      rotate(0deg);   opacity: 0.75; }
+          50%  { transform: scale(0.95) translate(-6%, -4%)  rotate(-4deg);  opacity: 0.92; }
+          100% { transform: scale(0.85) translate(-13%, -9%) rotate(-9deg);  opacity: 1.0;  }
+        }
+        @keyframes amb-c {
+          0%   { transform: scale(0.88) translate(7%, -9%);  opacity: 0.55; }
+          50%  { transform: scale(1.08) translate(0%, 0%);   opacity: 0.80; }
+          100% { transform: scale(1.32) translate(-7%, 9%);  opacity: 0.95; }
+        }
+      `}</style>
     </div>
   );
 }

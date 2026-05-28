@@ -154,7 +154,16 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
     const modes: PlaybackState['repeatMode'][] = ['none', 'all', 'one'];
     return { repeatMode: modes[(modes.indexOf(s.repeatMode) + 1) % modes.length] };
   }),
-  toggleAutoplay: () => set((s) => ({ isAutoplay: !s.isAutoplay })),
+  toggleAutoplay: () => {
+    const next = !get().isAutoplay;
+    set({ isAutoplay: next });
+    // Sync to settings store so the Settings panel toggle matches PlayerBar
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { useSettings } = require('@/hooks/useSettings');
+      useSettings.setState({ autoplay: next });
+    } catch { /* settings not loaded yet */ }
+  },
 
   prevTrack: () => {
     const { history, currentTrack, progress } = get();
@@ -202,8 +211,8 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
         isLoadingTrack: true,
       });
 
-      // Silently refill if running low
-      if (newQueue.length < 4 && !isAutoQueuing) {
+      // Silently refill if running low — ONLY when autoplay is on
+      if (newQueue.length < 4 && !isAutoQueuing && get().isAutoplay) {
         set({ isAutoQueuing: true });
         backgroundRefill(next, newQueue);
       }

@@ -195,7 +195,7 @@ export function RecommendationFeed() {
             <h2 className="font-display text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.06] tracking-tight text-white">
               {currentTrack
                 ? `Deep in ${currentTrack.artist}'s world.`
-                : "Sounds you didn't know you needed."}
+                : "Tracks you didn't know you needed."}
             </h2>
             <p className="mt-3 text-[13px] text-white/28 font-normal max-w-md">
               {currentTrack
