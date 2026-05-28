@@ -2,13 +2,13 @@
  * useUserProfile — Cloud-synced user data store
  *
  * Strategy: "Cloud-first, local cache"
- *  - Zustand state = source of truth for the UI
- *  - When user is authenticated: every mutation also writes to Supabase
- *  - On login: `loadFromCloud(userId)` fetches everything from Supabase
- *    and replaces local state
- *  - Unauthenticated users still get localStorage persistence as before
+ *  - Zustand state = source of truth for UI
+ *  - Authenticated: every mutation also writes to Supabase immediately
+ *  - On every page load (login): re-fetch from Supabase (no stale-sync guard)
+ *  - One-time migration: pushes existing localStorage data to Supabase on first
+ *    login after the sync feature was deployed
  *
- * Tables needed: run supabase/schema.sql in your Supabase dashboard first.
+ * Tables: run supabase/schema.sql in Supabase SQL Editor first.
  */
 
 import { create } from 'zustand';
@@ -19,7 +19,7 @@ import {
   fetchPlaylists, createPlaylistDB, updatePlaylistDB, deletePlaylistDB,
   addTrackToPlaylistDB, removeTrackFromPlaylistDB,
   fetchRecentlyPlayed, insertRecentlyPlayed,
-  fetchUserProfile, upsertUserProfile, uploadAvatar,
+  fetchUserProfile,
 } from '@/lib/supabase/db';
 
 export interface Playlist {
@@ -32,23 +32,22 @@ export interface Playlist {
 
 interface UserProfileState {
   // Data
-  likedTrackIds:  string[];
-  likedTracks:    Track[];
-  recentlyPlayed: Track[];
-  playlists:      Playlist[];
-  customAvatarUrl: string | null;  // Uploaded avatar (overrides Google avatar)
+  likedTrackIds:   string[];
+  likedTracks:     Track[];
+  recentlyPlayed:  Track[];
+  playlists:       Playlist[];
+  customAvatarUrl: string | null;
 
-  // Sync state
-  _syncedUserId: string | null;    // user ID we last synced for
+  // Internal (not persisted — reset on every page load)
   _syncing: boolean;
 
-  // Actions
+  // Actions — userId is optional; pass it when user is logged in so data writes to Supabase
   likeTrack:               (track: Track, userId?: string) => void;
-  unlikeTrack:             (id: string, userId?: string) => void;
+  unlikeTrack:             (id: string,   userId?: string) => void;
   isLiked:                 (id: string) => boolean;
   addToRecentlyPlayed:     (track: Track, userId?: string) => void;
   createPlaylist:          (name: string, coverArt?: string, userId?: string) => Playlist;
-  deletePlaylist:          (id: string, userId?: string) => void;
+  deletePlaylist:          (id: string,   userId?: string) => void;
   addTrackToPlaylist:      (playlistId: string, track: Track, userId?: string) => void;
   removeTrackFromPlaylist: (playlistId: string, trackId: string, userId?: string) => void;
   renamePlaylist:          (id: string, newName: string, userId?: string) => void;
@@ -56,13 +55,56 @@ interface UserProfileState {
   reorderPlaylist:         (id: string, startIndex: number, endIndex: number) => void;
   clearHistory:            () => void;
 
-  // Avatar
-  updateAvatar:            (file: File, userId: string) => Promise<string | null>;
-
   // Cloud sync
-  loadFromCloud:           (userId: string) => Promise<void>;
-  clearLocalData:          () => void;
+  loadFromCloud:   (userId: string) => Promise<void>;
+  clearLocalData:  () => void;
 }
+
+// ── One-time migration: push existing localStorage → Supabase ──────────────
+
+const MIGRATION_PREFIX = 'loop-cloud-migrated-v1-';
+
+async function migrateLocalToCloud(
+  userId: string,
+  localLikedTracks: Track[],
+  localPlaylists: Playlist[],
+  localRecentlyPlayed: Track[],
+) {
+  const key = `${MIGRATION_PREFIX}${userId}`;
+  if (localStorage.getItem(key)) return; // Already done
+
+  console.log('[sync] First-time migration: pushing local data to Supabase…');
+
+  try {
+    // Push liked songs (deduplicated by Supabase UNIQUE constraint)
+    const likedPromises = localLikedTracks.map((t) =>
+      insertLikedSong(userId, t).catch(() => {}),
+    );
+
+    // Push playlists + their tracks
+    const playlistPromises = localPlaylists.flatMap((pl) => [
+      createPlaylistDB(userId, pl.id, pl.name, pl.coverArt).catch(() => {}),
+      ...pl.tracks.map((t, i) =>
+        addTrackToPlaylistDB(pl.id, t, i).catch(() => {}),
+      ),
+    ]);
+
+    // Push recently played (newest first → play in reverse so newest ends on top)
+    const recentPromises = [...localRecentlyPlayed]
+      .reverse()
+      .slice(0, 50)
+      .map((t) => insertRecentlyPlayed(userId, t).catch(() => {}));
+
+    await Promise.all([...likedPromises, ...playlistPromises, ...recentPromises]);
+
+    localStorage.setItem(key, 'true');
+    console.log('[sync] Migration complete');
+  } catch (err) {
+    console.error('[sync] Migration failed (will retry next login):', err);
+  }
+}
+
+// ── Store ──────────────────────────────────────────────────────────────────
 
 export const useUserProfile = create<UserProfileState>()(
   persist(
@@ -72,10 +114,9 @@ export const useUserProfile = create<UserProfileState>()(
       recentlyPlayed:  [],
       playlists:       [],
       customAvatarUrl: null,
-      _syncedUserId:   null,
       _syncing:        false,
 
-      // ── Likes ──────────────────────────────────────────────────────
+      // ── Likes ────────────────────────────────────────────────────────
       likeTrack: (track, userId) => {
         set((s) => {
           if (s.likedTrackIds.includes(track.id)) return s;
@@ -97,7 +138,7 @@ export const useUserProfile = create<UserProfileState>()(
 
       isLiked: (id) => get().likedTrackIds.includes(id),
 
-      // ── Recently Played ────────────────────────────────────────────
+      // ── Recently Played ──────────────────────────────────────────────
       addToRecentlyPlayed: (track, userId) => {
         set((s) => {
           const filtered = s.recentlyPlayed.filter((t) => t.id !== track.id);
@@ -106,7 +147,7 @@ export const useUserProfile = create<UserProfileState>()(
         if (userId) insertRecentlyPlayed(userId, track).catch(console.error);
       },
 
-      // ── Playlists ──────────────────────────────────────────────────
+      // ── Playlists ────────────────────────────────────────────────────
       createPlaylist: (name, coverArt, userId) => {
         const playlist: Playlist = {
           id:        `pl_${Date.now()}`,
@@ -133,7 +174,9 @@ export const useUserProfile = create<UserProfileState>()(
           }),
         }));
         if (userId) {
-          const position = (get().playlists.find((p) => p.id === playlistId)?.tracks.length ?? 0);
+          // Get the position AFTER the set (track is now in local state)
+          const updatedPl = get().playlists.find((p) => p.id === playlistId);
+          const position = (updatedPl?.tracks.length ?? 1) - 1;
           addTrackToPlaylistDB(playlistId, track, position).catch(console.error);
         }
       },
@@ -176,44 +219,57 @@ export const useUserProfile = create<UserProfileState>()(
 
       clearHistory: () => set({ recentlyPlayed: [] }),
 
-      // ── Avatar ─────────────────────────────────────────────────────
-      updateAvatar: async (file, userId) => {
-        const url = await uploadAvatar(userId, file);
-        if (url) set({ customAvatarUrl: url });
-        return url;
-      },
-
-      // ── Cloud Sync ─────────────────────────────────────────────────
+      // ── Cloud Sync ───────────────────────────────────────────────────
 
       /**
        * Fetch all user data from Supabase and replace local state.
-       * Called once per login.
+       * Called on every login / page load (no stale-sync guard so data
+       * is always fresh).
+       * Also runs a one-time migration to push existing local data first.
        */
-      loadFromCloud: async (userId) => {
-        if (get()._syncing || get()._syncedUserId === userId) return;
+      loadFromCloud: async (userId: string) => {
+        if (get()._syncing) return;
         set({ _syncing: true });
 
         try {
-          const [liked, playlists, recent, profile] = await Promise.all([
+          const s = get();
+
+          // ── Step 1: migrate local → Supabase (one-time) ─────────────
+          await migrateLocalToCloud(
+            userId,
+            s.likedTracks,
+            s.playlists,
+            s.recentlyPlayed,
+          );
+
+          // ── Step 2: fetch fresh data from Supabase ───────────────────
+          const [liked, cloudPlaylists, recent, profile] = await Promise.all([
             fetchLikedSongs(userId),
             fetchPlaylists(userId),
             fetchRecentlyPlayed(userId),
             fetchUserProfile(userId),
           ]);
 
+          // Map cloud playlists to local Playlist shape
+          const playlists: Playlist[] = cloudPlaylists.map((p) => ({
+            id:        p.id,
+            name:      p.name,
+            tracks:    p.tracks,
+            createdAt: p.created_at,
+            coverArt:  p.cover_art,
+          }));
+
+          // Determine which avatar to show:
+          // 1. Supabase user_profiles.avatar_url (custom uploaded, cloud-synced)
+          // 2. Local customAvatarUrl
+          const avatarUrl = profile?.avatar_url ?? s.customAvatarUrl;
+
           set({
-            likedTracks:    liked,
-            likedTrackIds:  liked.map((t) => t.id),
-            playlists:      playlists.map((p) => ({
-              id:        p.id,
-              name:      p.name,
-              tracks:    p.tracks,
-              createdAt: p.created_at,
-              coverArt:  p.cover_art,
-            })),
-            recentlyPlayed: recent,
-            customAvatarUrl: profile?.avatar_url ?? get().customAvatarUrl,
-            _syncedUserId: userId,
+            likedTracks:     liked,
+            likedTrackIds:   liked.map((t) => t.id),
+            playlists,
+            recentlyPlayed:  recent,
+            customAvatarUrl: avatarUrl,
           });
 
         } catch (err) {
@@ -223,34 +279,34 @@ export const useUserProfile = create<UserProfileState>()(
         }
       },
 
-      /** Clear local data on logout */
+      /** Clear local data on sign out */
       clearLocalData: () => set({
         likedTrackIds:   [],
         likedTracks:     [],
         recentlyPlayed:  [],
         playlists:       [],
         customAvatarUrl: null,
-        _syncedUserId:   null,
       }),
     }),
 
     {
       name: 'loop-user-profile-v2',
+      // Do NOT persist _syncing — it should always start as false on page load
       partialize: (s) => ({
         likedTrackIds:   s.likedTrackIds,
         likedTracks:     s.likedTracks,
         recentlyPlayed:  s.recentlyPlayed,
         playlists:       s.playlists,
         customAvatarUrl: s.customAvatarUrl,
-        _syncedUserId:   s._syncedUserId,
+        // _syncedUserId intentionally excluded — removed from v2
       }),
     },
   ),
 );
 
 /**
- * Wire usePlayback → useUserProfile for auto-recording recently played tracks.
- * Call once at app root. Pass userId so cloud sync also gets triggered.
+ * Wire usePlayback → useUserProfile for auto-recording recently played.
+ * Call once at app root.
  */
 export function initProfileSync() {
   import('./usePlayback').then(({ usePlayback }) => {

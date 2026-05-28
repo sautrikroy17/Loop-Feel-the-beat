@@ -84,6 +84,7 @@ function TrackRow({
   children?: React.ReactNode;
 }) {
   const { playlists, addTrackToPlaylist } = useUserProfile();
+  const { user } = useAuth();
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +158,7 @@ function TrackRow({
                   : playlists.map(p => (
                       <button
                         key={p.id}
-                        onClick={() => { addTrackToPlaylist(p.id, track); setShowPicker(false); }}
+                        onClick={() => { addTrackToPlaylist(p.id, track, user?.id); setShowPicker(false); }}
                         className="flex items-center gap-2 w-full px-2.5 py-2 hover:bg-white/[0.06] transition-colors"
                       >
                         <div className="h-7 w-7 shrink-0 rounded-md overflow-hidden bg-white/[0.05] flex items-center justify-center">
@@ -222,6 +223,7 @@ function AddSongsPanel({ playlistId, onClose }: { playlistId: string; onClose: (
   const [results, setResults] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const { addTrackToPlaylist, playlists, recentlyPlayed } = useUserProfile();
+  const { user: panelUser } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -308,7 +310,7 @@ function AddSongsPanel({ playlistId, onClose }: { playlistId: string; onClose: (
                   <div className="w-10 shrink-0 text-right tabular-nums text-[11px] text-white/30">{fmtMs(track.durationMs)}</div>
                 </div>
                 <button
-                  onClick={() => addTrackToPlaylist(playlistId, track)}
+                  onClick={() => addTrackToPlaylist(playlistId, track, panelUser?.id)}
                   disabled={addedIds.has(track.id)}
                   className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-full transition-all ${
                     addedIds.has(track.id)
@@ -428,6 +430,7 @@ function CreatePlaylistModal({ onClose, onCreate }: {
 function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: () => void }) {
   const { playlists, renamePlaylist, reorderPlaylist, removeTrackFromPlaylist, updatePlaylistCover } = useUserProfile();
   const { playTrack } = usePlayback();
+  const { user: editorUser } = useAuth();
   const playlist = playlists.find((p) => p.id === playlistId);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(playlist?.name ?? '');
@@ -456,7 +459,7 @@ function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: ()
     const f = e.target.files?.[0];
     if (!f) return;
     const dataUrl = await readFileAsDataUrl(f);
-    updatePlaylistCover(playlist!.id, dataUrl);
+    updatePlaylistCover(playlist!.id, dataUrl, editorUser?.id);
   }
 
   return (
@@ -508,7 +511,7 @@ function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: ()
             value={nameInput}
             onChange={e => setNameInput(e.target.value)}
             onBlur={() => {
-              if (nameInput.trim() && nameInput !== playlist.name) renamePlaylist(playlist.id, nameInput.trim());
+              if (nameInput.trim() && nameInput !== playlist.name) renamePlaylist(playlist.id, nameInput.trim(), editorUser?.id);
               setIsEditingName(false);
             }}
             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
@@ -553,7 +556,7 @@ function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: ()
                     id={track.id}
                     track={track}
                     onPlay={() => playTrack(track)}
-                    onRemove={() => removeTrackFromPlaylist(playlist.id, track.id)}
+                    onRemove={() => removeTrackFromPlaylist(playlist.id, track.id, editorUser?.id)}
                   />
                 ))}
               </div>
