@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import {
   X, SkipBack, SkipForward, Play, Pause, Shuffle, Repeat, Repeat1,
-  Volume2, VolumeX, Loader2, Plus, Mic2, ListMusic, Music2, Check
+  Volume2, VolumeX, Loader2, Plus, Mic2, ListMusic, Music2, FolderPlus, Check
 } from 'lucide-react';
 import { usePlayback, type Track } from '@/hooks/usePlayback';
 import { subscribeToAudio } from '@/hooks/useAudioData';
@@ -272,6 +272,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
 
   const [tab, setTab] = useState<Tab>('lyrics');
+  const [showPlaylistPicker, setPicker] = useState(false);
   const REPEAT_ICON = repeatMode === 'one' ? Repeat1 : Repeat;
 
   useEffect(() => {
@@ -319,10 +320,10 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </div>
 
           {/* Body */}
-          <div className="relative z-10 flex flex-1 overflow-hidden">
+          <div className="relative z-10 flex flex-1 flex-col md:flex-row overflow-y-auto md:overflow-hidden pb-[env(safe-area-inset-bottom)]">
 
             {/* ── Left: Album + controls ──────────────────────────── */}
-            <div className="flex w-full max-w-[22rem] shrink-0 flex-col justify-center gap-5 px-8 py-4">
+            <div className="flex w-full md:max-w-[22rem] shrink-0 flex-col justify-center gap-5 px-6 md:px-8 py-4">
 
               {/* Reactive album art — scale + glow from audio engine */}
               <AnimatePresence mode="wait">
@@ -342,7 +343,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
               {/* Track info + like/playlist */}
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1 text-center">
+                <div className="min-w-0 flex-1 text-center md:text-left">
                   <div className="truncate text-[17px] font-semibold text-white">
                     {currentTrack?.title || '—'}
                   </div>
@@ -350,12 +351,27 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     {currentTrack?.artist}
                   </div>
                 </div>
-                {currentTrack && (
-                  <LikeButton track={currentTrack} size="md" className="shrink-0 -mt-0.5" />
-                )}
+                <div className="flex shrink-0 items-center gap-1 -mt-0.5">
+                  <div className="relative">
+                    <button
+                      onClick={() => setPicker(v => !v)}
+                      className={`rounded-full p-2 transition-colors ${showPlaylistPicker ? 'text-[oklch(0.72_0.26_248)]' : 'text-white/30 hover:text-white/70'}`}
+                    >
+                      <FolderPlus className="h-5 w-5" />
+                    </button>
+                    <AnimatePresence>
+                      {showPlaylistPicker && currentTrack && (
+                        <PlaylistPickerPopup onClose={() => setPicker(false)} track={currentTrack} />
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  {currentTrack && (
+                    <LikeButton track={currentTrack} size="md" />
+                  )}
+                </div>
               </div>
 
-              <div className="w-full overflow-hidden rounded-lg">
+              <div className="hidden md:block w-full overflow-hidden rounded-lg">
                 <FrequencyBars height={52} numBars={56} />
               </div>
 
@@ -423,7 +439,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             </div>
 
             {/* ── Right: Lyrics / Queue ──────────────────────────── */}
-            <div className="flex flex-1 flex-col overflow-hidden border-l border-white/[0.06]">
+            <div className="flex min-h-[400px] md:min-h-0 flex-1 flex-col overflow-hidden border-t md:border-l md:border-t-0 border-white/[0.06] mt-4 md:mt-0">
               {/* Tabs */}
               <div className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] px-4 py-3">
                 {(['lyrics', 'queue'] as Tab[]).map((t) => (
@@ -445,7 +461,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={tab}
@@ -453,7 +469,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.16 }}
-                    className="h-full"
+                    className="absolute inset-0 h-full w-full"
                   >
                     {tab === 'lyrics' && <CinematicLyrics track={currentTrack} />}
                     {tab === 'queue'  && <QueueView />}

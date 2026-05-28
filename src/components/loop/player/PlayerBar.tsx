@@ -382,7 +382,9 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
           }}
         >
           {/* ── EQ + Progress canvas at top edge ── */}
-          <EQProgressCanvas pct={pct} onSeek={handleEQSeek} />
+          <div className="hidden md:block">
+            <EQProgressCanvas pct={pct} onSeek={handleEQSeek} />
+          </div>
 
           {/* ── Main 3-section bar (offset top by canvas height) ── */}
           <div className="pt-[16px]">
