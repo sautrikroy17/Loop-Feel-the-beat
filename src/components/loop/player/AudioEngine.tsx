@@ -173,7 +173,11 @@ export function AudioEngine() {
       if (cancelled) return;
 
       if (ytId) {
-        playerRef.current?.loadVideoById({ videoId: ytId });
+        if (usePlayback.getState().isPlaying) {
+          playerRef.current?.loadVideoById({ videoId: ytId });
+        } else {
+          playerRef.current?.cueVideoById({ videoId: ytId });
+        }
         playerRef.current?.setVolume(usePlayback.getState().volume);
       } else {
         isTransitioningRef.current = false;
