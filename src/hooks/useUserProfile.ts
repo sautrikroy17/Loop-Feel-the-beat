@@ -32,6 +32,7 @@ interface UserProfileState {
   addTrackToPlaylist: (playlistId: string, track: Track) => void;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => void;
   renamePlaylist: (id: string, newName: string) => void;
+  updatePlaylistCover: (id: string, coverArt: string) => void;
   reorderPlaylist: (id: string, startIndex: number, endIndex: number) => void;
   clearHistory: () => void;
 }
@@ -99,6 +100,11 @@ export const useUserProfile = create<UserProfileState>()(
       renamePlaylist: (id, name) =>
         set((s) => ({
           playlists: s.playlists.map(p => p.id === id ? { ...p, name } : p)
+        })),
+
+      updatePlaylistCover: (id, coverArt) =>
+        set((s) => ({
+          playlists: s.playlists.map(p => p.id === id ? { ...p, coverArt } : p)
         })),
 
       reorderPlaylist: (id, startIndex, endIndex) =>

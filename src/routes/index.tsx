@@ -81,10 +81,10 @@ function Index() {
         onLibraryOpen={() => setLibraryOpen(true)}
       />
 
-      {/* Page content */}
-      <Hero onSearchOpen={() => setSearchOpen(true)} />
-      <RecommendationFeed />
-      <div className={currentTrack ? 'pb-24' : ''}>
+      {/* Page content — pb accounts for fixed player bar at bottom */}
+      <div className={currentTrack ? 'pb-28' : 'pb-0'}>
+        <Hero onSearchOpen={() => setSearchOpen(true)} />
+        <RecommendationFeed />
         <Footer />
       </div>
 
