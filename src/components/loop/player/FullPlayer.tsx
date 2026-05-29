@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { usePlayback, type Track } from "@/hooks/usePlayback";
 import { subscribeToAudio } from "@/hooks/useAudioData";
-import { FrequencyBars } from "@/components/loop/visualizer/FrequencyBars";
+
 import { CinematicLyrics } from "./CinematicLyrics";
 import { WhiteSlider } from "./WhiteSlider";
 import { LikeButton } from "@/components/loop/LikeButton";
@@ -410,9 +410,7 @@ export function FullPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 </div>
               </div>
 
-              <div className="hidden md:block w-full overflow-hidden rounded-lg">
-                <FrequencyBars height={52} numBars={56} />
-              </div>
+
 
               <FullSeekbar />
 
