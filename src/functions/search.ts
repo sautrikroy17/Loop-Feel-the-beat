@@ -4,14 +4,16 @@
  * All server functions run securely on the server — API internals
  * are never exposed to the browser bundle.
  *
- * Primary source: YouTube Music InnerTube API (zero API keys required)
- * Optional enhancement: Spotify metadata (when credentials are configured)
+ * Security: Every public endpoint is rate-limited and all inputs
+ * are sanitised before reaching internal services.
  */
 
 import { createServerFn } from '@tanstack/react-start';
 import { searchYouTubeMusic, getRelatedTracks, resolveVideoId } from '../server/services/youtubeMusic';
 import { searchSpotifyTracks, getRecommendations } from '../server/services/spotify';
 import { resolveYouTubePlayback } from '../server/services/youtube';
+import { sanitiseQuery, sanitiseId, checkRateLimit } from '../server/middleware/security';
+
 
 // ─── Shared Track Shape ──────────────────────────────────────────
 
@@ -32,8 +34,9 @@ function getHighResAlbumArt(url: any): string {
     url = thumb?.url || '';
   }
   if (typeof url !== 'string') return '';
-  // Replace YouTube Music's low-res dimension parameters with HD versions (576x576 is safe, 1200x1200 causes 404s)
-  return url.replace(/([=\-])w\d+-h\d+/, '$1w576-h576');
+  // Upgrade YouTube Music's thumbnail to maximum possible resolution.
+  // 1200x1200 will be dynamically served by Google's CDN if available.
+  return url.replace(/([=\-])w\d+-h\d+[^&"']*/, '$1w1200-h1200');
 }
 
 function ytmToLoop(t: any): LoopTrack {
@@ -68,7 +71,11 @@ function spotifyToLoop(t: any): LoopTrack {
  */
 export const hybridSearchFn = createServerFn({ method: 'GET' })
   .inputValidator((data: string) => data)
-  .handler(async ({ data: query }) => {
+  .handler(async ({ data: rawQuery }) => {
+    const query = sanitiseQuery(rawQuery);
+    if (!query) return [];
+    checkRateLimit(`search:${query.slice(0, 20)}`);
+
     // ── Primary: YouTube Music ──
     try {
       const ytmResults = await searchYouTubeMusic(query, 40);
@@ -89,7 +96,6 @@ export const hybridSearchFn = createServerFn({ method: 'GET' })
       console.warn('[Search] Spotify search also failed:', err);
     }
 
-    // Both APIs failed — return empty rather than fake data
     return [];
   });
 
@@ -103,20 +109,25 @@ export const hybridSearchFn = createServerFn({ method: 'GET' })
 export const getPlaybackSourceFn = createServerFn({ method: 'GET' })
   .inputValidator((data: { trackName: string; artistName: string; isRemix?: boolean }) => data)
   .handler(async ({ data }) => {
-    // ── Primary: key-free InnerTube resolution ──
+    const trackName  = sanitiseQuery(data.trackName,  150);
+    const artistName = sanitiseQuery(data.artistName, 150);
+    if (!trackName) return null;
+    checkRateLimit(`playback:${trackName.slice(0, 20)}`);
+
+    // ── Primary: fast music search resolution ──
     try {
-      const videoId = await resolveVideoId(data.trackName, data.artistName);
+      const videoId = await resolveVideoId(trackName, artistName);
       if (videoId) return videoId;
     } catch (err) {
-      console.warn('[Playback] InnerTube resolution failed, trying YT Data API:', err);
+      console.warn('[Playback] Primary resolution failed, trying fallback:', err);
     }
 
-    // ── Fallback: YouTube Data API v3 (key optional) ──
+    // ── Fallback: secondary resolution ──
     try {
-      const videoId = await resolveYouTubePlayback(data.trackName, data.artistName, data.isRemix);
+      const videoId = await resolveYouTubePlayback(trackName, artistName, data.isRemix);
       if (videoId) return videoId;
     } catch (err) {
-      console.warn('[Playback] YouTube Data API resolution also failed:', err);
+      console.warn('[Playback] Fallback resolution also failed:', err);
     }
 
     return null;
@@ -129,10 +140,13 @@ export const getPlaybackSourceFn = createServerFn({ method: 'GET' })
 export const getFallbackSourceFn = createServerFn({ method: 'GET' })
   .inputValidator((data: { trackName: string; artistName: string }) => data)
   .handler(async ({ data }) => {
+    const trackName  = sanitiseQuery(data.trackName,  150);
+    const artistName = sanitiseQuery(data.artistName, 150);
+    if (!trackName) return null;
+    checkRateLimit(`fallback:${trackName.slice(0, 20)}`);
     try {
-      // Use dynamic require so it doesn't break client bundle if imported wrongly
       const YouTube = require('youtube-sr').default;
-      const results = await YouTube.search(`${data.artistName} ${data.trackName} lyrics audio`, { limit: 1 });
+      const results = await YouTube.search(`${artistName} ${trackName} lyrics audio`, { limit: 1 });
       return results[0]?.id ?? null;
     } catch (e) {
       console.error('[Fallback] Search failed:', e);
@@ -148,26 +162,25 @@ export const getFallbackSourceFn = createServerFn({ method: 'GET' })
  */
 export const getRecommendationsFn = createServerFn({ method: 'GET' })
   .inputValidator((data: string) => data)
-  .handler(async ({ data: trackId }) => {
-    // ── Primary: YouTube Music related tracks ──
-    // trackId might be a YT video ID (from YTM search) or a Spotify ID or a search query
-    // Try YTM first — it works with video IDs and is key-free
+  .handler(async ({ data: rawId }) => {
+    const trackId = sanitiseQuery(rawId, 256);
+    if (!trackId) return [];
+    checkRateLimit(`recs:${trackId.slice(0, 20)}`, 120); // slightly higher limit for autoplay
+
     if (!trackId.startsWith('spotify:')) {
       if (trackId.length <= 12) {
-        // Looks like a YT video ID (typically 11 chars)
         try {
           const related = await getRelatedTracks(trackId, 10);
           if (related.length > 0) return related.map(ytmToLoop);
         } catch (err) {
-          console.warn('[Recs] YTM related tracks failed:', err);
+          console.warn('[Recs] Related tracks failed:', err);
         }
       } else {
-        // It's a mood-based search query from buildAutoplaySeed (e.g. "Justin Bieber pop")
         try {
           const searchResults = await searchYouTubeMusic(trackId, 10);
           if (searchResults.length > 0) return searchResults.map(ytmToLoop);
         } catch (err) {
-          console.warn('[Recs] YTM search fallback failed:', err);
+          console.warn('[Recs] Search fallback failed:', err);
         }
       }
     }

@@ -29,9 +29,15 @@ export function ReactiveBackground() {
 
     function resize() {
       if (!canvas) return;
-      // Render at half resolution for massive performance boost, CSS scales it up
-      canvas.width  = Math.max(window.innerWidth / 2, 800);
-      canvas.height = Math.max(window.innerHeight / 2, 600);
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) {
+        canvas.width = 0;
+        canvas.height = 0;
+      } else {
+        // Render at half resolution for massive performance boost, CSS scales it up
+        canvas.width  = Math.max(rect.width / 2, 400);
+        canvas.height = Math.max(rect.height / 2, 300);
+      }
     }
     resize();
     window.addEventListener('resize', resize, { passive: true });
@@ -41,6 +47,8 @@ export function ReactiveBackground() {
 
     const unsub = subscribeToAudio((d) => {
       if (!canvas || !ctx) return;
+      const W = canvas.width, H = canvas.height;
+      if (W === 0 || H === 0) return; // FIX: Abort expensive canvas rendering when hidden on mobile!
 
       // Smooth (different rates per band for natural feel)
       sBass   += (d.bass    - sBass)   * 0.10;
@@ -50,7 +58,6 @@ export function ReactiveBackground() {
       sLoud   += (d.loudness - sLoud)  * 0.08;
       sIntensity += (effectIntensity - sIntensity) * 0.04; // Smooth mode switching
 
-      const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
 
       if (!immersiveEffects || premiumMode === 'focus' || sIntensity < 0.01) return;
@@ -139,7 +146,7 @@ export function ReactiveBackground() {
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none fixed inset-0"
+      className="pointer-events-none fixed inset-0 hidden md:block"
       style={{ zIndex: -9, mixBlendMode: 'screen' }}
     />
   );

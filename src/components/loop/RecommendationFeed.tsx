@@ -41,7 +41,7 @@ function TrackCard({ track, index = 0 }: { track: Track; index?: number }) {
       whileInView={{ rotateX: 0, opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
       transition={{ duration: 0.8, type: "spring", bounce: 0.35, delay: index * 0.05 }}
-      className="group relative w-36 sm:w-44 shrink-0 select-none"
+      className="group relative w-44 shrink-0 select-none"
       style={{ transformStyle: 'preserve-3d' }}
     >
       <div
@@ -58,6 +58,12 @@ function TrackCard({ track, index = 0 }: { track: Track; index?: number }) {
             alt={track.title}
             className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105"
             loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.src.includes('maxresdefault.jpg')) {
+                target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+              }
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -143,6 +149,12 @@ function AlbumCard({ album, index = 0, onClick }: { album: any; index?: number; 
             alt={album.title}
             className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105"
             loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.src.includes('maxresdefault.jpg')) {
+                target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+              }
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

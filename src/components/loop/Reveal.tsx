@@ -29,7 +29,7 @@ export function Reveal({
       viewport={{ once: true, margin: "-80px" }}
       variants={variants}
       transition={{ delay, duration: 0.9, ease }}
-      className={className}
+      className={`desktop-only-animate ${className}`}
     >
       {children}
     </motion.div>
@@ -54,7 +54,7 @@ export function Stagger({
         hidden: {},
         show: { transition: { staggerChildren: gap } },
       }}
-      className={className}
+      className={`desktop-only-animate ${className}`}
     >
       {children}
     </motion.div>
@@ -69,7 +69,7 @@ export function StaggerItem({
   className?: string;
 }) {
   return (
-    <motion.div variants={variants} className={className}>
+    <motion.div variants={variants} className={`desktop-only-animate ${className}`}>
       {children}
     </motion.div>
   );

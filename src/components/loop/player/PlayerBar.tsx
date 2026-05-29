@@ -351,7 +351,17 @@ export function PlayerBar({ onExpand, onKaraoke }: { onExpand: () => void; onKar
                 <button onClick={onExpand} className="relative shrink-0">
                   <div className="h-11 w-11 overflow-hidden rounded-xl bg-white/8">
                     {currentTrack.albumArt && (
-                      <img src={currentTrack.albumArt} alt="" className="h-full w-full object-cover" />
+                      <img 
+                        src={currentTrack.albumArt} 
+                        alt="" 
+                        className="h-full w-full object-cover" 
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target.src.includes('maxresdefault.jpg')) {
+                            target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+                          }
+                        }}
+                      />
                     )}
                   </div>
                   {isLoadingTrack && (

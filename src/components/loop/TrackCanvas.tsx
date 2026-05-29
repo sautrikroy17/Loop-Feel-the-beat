@@ -87,12 +87,19 @@ function startRenderer(canvas: HTMLCanvasElement, palette: [RGB, RGB, RGB]) {
   const unsub = subscribeToAudio((d) => { bass = d.bass; treble = d.treble; });
 
   function resize() {
-    // Force low resolution (0.5x) for massive GPU/CPU performance boost
-    // since we are just drawing soft glowing orbs
     const scale = 0.5;
-    canvas.width  = Math.max(canvas.offsetWidth * scale, 400);
-    canvas.height = Math.max(canvas.offsetHeight * scale, 300);
-    ctx.scale(scale, scale);
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0) {
+      canvas.width = 0;
+      canvas.height = 0;
+    } else {
+      canvas.width  = Math.max(rect.width * scale, 400);
+      canvas.height = Math.max(rect.height * scale, 300);
+      ctx.scale(scale, scale);
+      if (rafId === 0) {
+        rafId = requestAnimationFrame(draw);
+      }
+    }
   }
   resize();
   const ro = new ResizeObserver(resize);
@@ -100,7 +107,8 @@ function startRenderer(canvas: HTMLCanvasElement, palette: [RGB, RGB, RGB]) {
 
   function draw() {
     const W = canvas.offsetWidth, H = canvas.offsetHeight;
-    if (W === 0 || H === 0) { rafId = requestAnimationFrame(draw); return; }
+    // FIX: Completely abort RAF loop when hidden! ResizeObserver will restart it.
+    if (W === 0 || H === 0) { rafId = 0; return; }
 
     const t = performance.now() * 0.001;
     ctx.clearRect(0, 0, W, H);
@@ -199,7 +207,7 @@ export function TrackCanvas() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.4 }}
-          className="pointer-events-none fixed inset-0 h-full w-full"
+          className="pointer-events-none fixed inset-0 h-full w-full hidden md:block"
           style={{ zIndex: -8, mixBlendMode: 'screen' }}
         />
       )}

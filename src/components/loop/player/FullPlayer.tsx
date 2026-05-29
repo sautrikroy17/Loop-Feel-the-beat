@@ -61,7 +61,17 @@ function ReactiveAlbumArt({ src, trackId }: { src?: string; trackId?: string }) 
       style={{ willChange: 'transform, box-shadow', transformOrigin: 'center' }}
     >
       {src ? (
-        <img src={src} alt="" className="h-full w-full object-cover" />
+        <img 
+          src={src} 
+          alt="" 
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (target.src.includes('maxresdefault.jpg')) {
+              target.src = target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+            }
+          }}
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[oklch(0.20_0.08_290)] to-[oklch(0.10_0.04_260)]">
           <Music2 className="h-16 w-16 text-white/10" />

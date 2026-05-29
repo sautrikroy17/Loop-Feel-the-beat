@@ -103,7 +103,7 @@ async function migrateLocalToCloud(
     // Push recently played (newest first → play in reverse so newest ends on top)
     const recentPromises = [...localRecentlyPlayed]
       .reverse()
-      .slice(0, 50)
+      .slice(0, 10)
       .map((t) => insertRecentlyPlayed(userId, t).catch(() => {}));
 
     await Promise.all([...likedPromises, ...playlistPromises, ...recentPromises]);
@@ -172,7 +172,7 @@ export const useUserProfile = create<UserProfileState>()(
       addToRecentlyPlayed: (track, userId) => {
         set((s) => {
           const filtered = s.recentlyPlayed.filter((t) => t.id !== track.id);
-          return { recentlyPlayed: [track, ...filtered].slice(0, 50) };
+          return { recentlyPlayed: [track, ...filtered].slice(0, 10) };
         });
         if (userId) insertRecentlyPlayed(userId, track).catch(console.error);
       },
@@ -306,7 +306,7 @@ export const useUserProfile = create<UserProfileState>()(
             likedTracks:     dbLiked,
             likedTrackIds:   dbLiked.map((t) => t.id),
             playlists,
-            recentlyPlayed:  dbRecent,
+            recentlyPlayed:  dbRecent.slice(0, 10),
             savedAlbums:     dbAlbums,
             customAvatarUrl: avatarUrl,
           });

@@ -82,23 +82,18 @@ function parseDurationMs(text?: string): number | undefined {
  */
 function upgradeThumbUrl(url: string, videoId: string): string {
   if (!url) {
-    // Construct from video ID directly
-    return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    return `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
   }
-
-  // Google lh3 CDN (YTM album art) — replace size parameters
+  // Trust the YouTube InnerTube API to provide the best thumbnail.
+  // Modifying ytimg URLs can strip `sqp` (square crop) parameters,
+  // and lh3 URLs are already provided at the highest native resolution by the API.
+  // We'll just return it unmodified to ensure pristine quality.
+  
   if (url.includes('lh3.googleusercontent.com') || url.includes('lh3.ggpht.com')) {
-    // Replace =wNNN-hNNN... suffix with high-res request
-    return url.replace(/=w\d+-h\d+[^&"']*/g, '=w576-h576-l90-rj');
-  }
-
-  // YouTube img CDN — request maxresdefault
-  if (url.includes('ytimg.com')) {
-    // Already has a specific resolution path — upgrade it
-    return url
-      .replace(/\/default\.jpg$/, '/hqdefault.jpg')
-      .replace(/\/mqdefault\.jpg$/, '/hqdefault.jpg')
-      .replace(/\/sddefault\.jpg$/, '/hqdefault.jpg');
+    // Just ensure the size is large enough if it explicitly sets a small one,
+    // otherwise let it be. Actually, replacing the w/h params with 1200 is fine,
+    // but let's do it safely without stripping other query params:
+    return url.replace(/=w\d+-h\d+/g, '=w1200-h1200');
   }
 
   return url;

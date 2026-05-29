@@ -56,17 +56,13 @@ export function initPlaybackSync(userId: string) {
   unsubscribePlayback = usePlayback.subscribe((state, prevState) => {
     if (isApplyingSync) return;
 
-    // If track or queue changed, broadcast full state
-    if (state.currentTrack?.id !== prevState.currentTrack?.id || state.queue !== prevState.queue) {
+    // Broadcast if track, queue, or play state changed
+    if (
+      state.currentTrack?.id !== prevState.currentTrack?.id || 
+      state.queue !== prevState.queue ||
+      state.isPlaying !== prevState.isPlaying
+    ) {
       broadcastEvent({ type: 'SYNC_STATE' });
-    }
-    // If we just hit play, tell other devices to pause
-    else if (state.isPlaying && !prevState.isPlaying) {
-      broadcastEvent({ type: 'SYNC_PLAY' });
-    }
-    // If we just paused, tell other devices
-    else if (!state.isPlaying && prevState.isPlaying) {
-      broadcastEvent({ type: 'SYNC_PAUSE' });
     }
   });
 }
@@ -89,8 +85,7 @@ function handleRemoteEvent(data: PlaybackSyncEvent) {
   isApplyingSync = true;
   
   if (data.type === 'SYNC_REQUEST') {
-    // Another device just woke up and wants to know what's playing.
-    // If we are actively playing, we should respond with our state.
+    // Another device woke up. If we are playing, tell them what's playing.
     const state = usePlayback.getState();
     if (state.isPlaying && state.currentTrack) {
       broadcastEvent({ type: 'SYNC_STATE' });
@@ -98,33 +93,24 @@ function handleRemoteEvent(data: PlaybackSyncEvent) {
   } 
   else if (data.type === 'SYNC_STATE') {
     usePlayback.setState((state) => {
-      if (state.currentTrack?.id !== data.track?.id) {
-        return {
-          currentTrack: data.track ?? null,
-          queue: data.queue || state.queue,
-          progress: data.progress || 0,
-          // Handoff: We receive the new track, but we DO NOT auto-play it. 
-          // We wait for the user to explicitly hit play on this device.
-          isPlaying: false,
-          youtubePlayerReady: false,
-        };
-      }
-      return state;
+      const isNewTrack = state.currentTrack?.id !== data.track?.id;
+      
+      return {
+        currentTrack: data.track ?? state.currentTrack,
+        queue: data.queue || state.queue,
+        // Only force progress if it's a new track to avoid jumping
+        progress: isNewTrack ? (data.progress || 0) : state.progress,
+        // If the OTHER device is playing, we MUST pause to prevent double-audio
+        isPlaying: data.isPlaying ? false : state.isPlaying,
+        youtubePlayerReady: isNewTrack ? false : state.youtubePlayerReady,
+      };
     });
-  }
-  else if (data.type === 'SYNC_PLAY') {
-    // Another device just started playing! We must pause ourselves to prevent double-audio.
-    usePlayback.setState({ isPlaying: false });
-  }
-  else if (data.type === 'SYNC_PAUSE') {
-    // Another device just paused. We just pause as well.
-    usePlayback.setState({ isPlaying: false });
   }
   
   // Ensure Zustand listeners that fire synchronously have time to run before unblocking
   setTimeout(() => {
     isApplyingSync = false;
-  }, 50);
+  }, 100);
 }
 
 // ── Outgoing ──────────────────────────────────────────────────────
@@ -135,7 +121,7 @@ export function broadcastEvent(eventOverride: Partial<PlaybackSyncEvent>) {
   const state = usePlayback.getState();
   
   const event: PlaybackSyncEvent = {
-    type: eventOverride.type || 'SYNC_STATE',
+    type: 'SYNC_STATE',
     deviceId: localDeviceId,
     track: state.currentTrack,
     queue: state.queue.slice(0, 50),

@@ -17,6 +17,7 @@ export function AudioEngine() {
   const progressRafRef     = useRef<number | null>(null);
   const currentYtIdRef     = useRef<string | null>(null);
   const hasPlayedOnceRef   = useRef(false);
+  const silentAudioRef     = useRef<HTMLAudioElement | null>(null);
 
   // KEY FIX: When true, we are mid-transition between tracks.
   // YouTube fires a PAUSED event when loadVideoById() interrupts a playing track.
@@ -222,6 +223,12 @@ export function AudioEngine() {
   const isPlaying = usePlayback(s => s.isPlaying);
 
   useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
     if (!isReadyRef.current || !playerRef.current) return;
     // Don't touch the player during transitions — it would race with loading
     if (isTransitioningRef.current) return;
@@ -245,8 +252,10 @@ export function AudioEngine() {
       } else {
         playerRef.current.playVideo?.();
       }
+      silentAudioRef.current?.play().catch(() => {});
     } else {
       playerRef.current.pauseVideo?.();
+      silentAudioRef.current?.pause();
     }
   }, [isPlaying, youtubePlayerReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -338,11 +347,19 @@ export function AudioEngine() {
   }, [nextTrackInQueue?.id]);
 
   return (
-    <div
-      id="youtube-headless-player"
-      className="fixed -z-50 opacity-0 pointer-events-none -left-[2000px] -top-[2000px]"
-      style={{ width: '200px', height: '200px' }}
-      aria-hidden="true"
-    />
+    <>
+      <div
+        id="youtube-headless-player"
+        className="fixed -z-50 opacity-0 pointer-events-none -left-[2000px] -top-[2000px]"
+        style={{ width: '200px', height: '200px' }}
+        aria-hidden="true"
+      />
+      <audio
+        ref={silentAudioRef}
+        src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+        loop
+        playsInline
+      />
+    </>
   );
 }

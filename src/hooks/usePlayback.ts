@@ -308,7 +308,7 @@ export const usePlayback = create<PlaybackState>()(
       },
     }),
     {
-      name: 'loop-playback-v1',
+      name: 'loop-playback-v2',
       // Only persist what matters for restoring the last session
       partialize: (state) => ({
         currentTrack: state.currentTrack,

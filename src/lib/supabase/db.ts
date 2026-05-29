@@ -191,7 +191,7 @@ export async function fetchRecentlyPlayed(userId: string): Promise<Track[]> {
     .select('track_data')
     .eq('user_id', userId)
     .order('played_at', { ascending: false })
-    .limit(50);
+    .limit(10);
 
   if (error) { console.error('[db] fetchRecentlyPlayed:', error.message); return []; }
   return (data ?? []).map((r) => r.track_data as Track);

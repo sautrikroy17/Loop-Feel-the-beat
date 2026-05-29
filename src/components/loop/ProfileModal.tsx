@@ -776,7 +776,7 @@ export function ProfileModal({
 
   const ALL_TABS = [
     { id: 'liked'     as ProfileTab, label: 'Liked',     icon: <Heart className="h-3.5 w-3.5" />,     count: likedTracks.length },
-    { id: 'recent'    as ProfileTab, label: 'Recent',    icon: <Clock className="h-3.5 w-3.5" />,     count: recentlyPlayed.length },
+    { id: 'recent'    as ProfileTab, label: 'Recent',    icon: <Clock className="h-3.5 w-3.5" />,     count: Math.min(recentlyPlayed.length, 10) },
     { id: 'playlists' as ProfileTab, label: 'Playlists', icon: <ListMusic className="h-3.5 w-3.5" />, count: playlists.length },
     { id: 'albums'    as ProfileTab, label: 'Albums',    icon: <Disc className="h-3.5 w-3.5" />,      count: savedAlbums.length },
     { id: 'stats'     as ProfileTab, label: 'Profile',   icon: <User className="h-3.5 w-3.5" /> },
@@ -901,7 +901,7 @@ export function ProfileModal({
                     {tab === 'recent' && (
                       recentlyPlayed.length > 0
                         ? <div className="space-y-0.5">
-                            {recentlyPlayed.map((t, i) => (
+                            {recentlyPlayed.slice(0, 10).map((t, i) => (
                               <TrackRow key={t.id} track={t} index={i} showDuration={true} onPlay={() => { playTrack(t); onClose(); }} />
                             ))}
                           </div>
