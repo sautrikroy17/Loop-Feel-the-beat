@@ -229,7 +229,7 @@ export const getDiscoverySectionsFn = createServerFn({ method: "GET" })
     const GLOBAL_CHARTS = [
       { title: "Top 50 Global", query: "Top 50 Global", icon: "🌎" },
       { title: "Trending Worldwide", query: "Trending Worldwide", icon: "📈" },
-      { title: "Viral TikTok Songs", query: "TikTok Viral", icon: "📱" },
+      { title: "Viral Insta Songs", query: "Insta Reels Viral", icon: "📱" },
       { title: "New Music Friday", query: "New Music Friday", icon: "🌟" },
     ];
 

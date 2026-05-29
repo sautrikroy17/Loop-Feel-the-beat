@@ -70,14 +70,14 @@ const GENRE_PATTERNS: [RegExp, string][] = [
   [/r&b|rnb/i, "Luxury R&B"],
   [/trap|hip.?hop|rap/i, "Underground Hip-Hop"],
   [/indie|alt/i, "Indie Nights"],
-  [/pop|viral/i, "Viral TikTok"],
+  [/pop|viral/i, "Viral Insta"],
   [/bollywood|hindi/i, "Desi Heat"],
 ];
 
 export function inferGenres(title: string, artist: string): string[] {
   const s = `${title} ${artist}`;
   const found = GENRE_PATTERNS.filter(([re]) => re.test(s)).map(([, g]) => g);
-  return found.length > 0 ? found : ["Viral TikTok"];
+  return found.length > 0 ? found : ["Viral Insta"];
 }
 
 // ── Zustand store ─────────────────────────────────────────────────
