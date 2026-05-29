@@ -355,22 +355,12 @@ export const useListeningIntelligence = create<IntelligenceState>()(
 
         if (!topG || stats.totalTracks < 3) return "New Explorer";
 
-        // Pivot identity based on immediate session (last 3-5 tracks)
+        // Pivot identity based on immediate session
         let genreBase = topG;
         const recentEvents = s.events.slice(0, 5);
         if (recentEvents.length > 0) {
-          const recentGenres = recentEvents.flatMap((e) => e.genres);
-          const recentCounts = recentGenres.reduce(
-            (acc, g) => {
-              acc[g] = (acc[g] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          );
-          const hotGenre = Object.entries(recentCounts).sort((a, b) => b[1] - a[1])[0];
-          if (hotGenre && hotGenre[1] >= 2) {
-            genreBase = hotGenre[0];
-          }
+          // Instantly adapt Live Identity to the very latest track played
+          genreBase = recentEvents[0].genres[0] ?? topG;
         }
 
         const hour = new Date().getHours();
