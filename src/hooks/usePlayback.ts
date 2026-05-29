@@ -125,6 +125,7 @@ export const usePlayback = create<PlaybackState>()(
             : state.history;
           return {
             currentTrack: track,
+            queue: [], // WIPE QUEUE INSTANTLY on manual play
             isPlaying: true,
             progress: 0,
             duration: 0,
@@ -135,9 +136,9 @@ export const usePlayback = create<PlaybackState>()(
 
         // Auto-populate queue instantly if autoplay is enabled
         const state = get();
-        if (state.isAutoplay && state.queue.length < 5) {
+        if (state.isAutoplay) {
           set({ isAutoQueuing: true });
-          backgroundRefill(track, state.queue);
+          backgroundRefill(track, []);
         }
       },
 

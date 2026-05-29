@@ -256,11 +256,28 @@ export const useListeningIntelligence = create<IntelligenceState>()(
           trackScores[key].score += (e.repeated ? 3 : 0) + (e.completed ? 1 : 0);
         }
 
-        return Object.values(trackScores)
+        const scored = Object.values(trackScores)
           .filter((t) => t.score > 0)
           .sort((a, b) => b.score - a.score)
           .slice(0, n)
           .map((t) => ({ title: t.title, artist: t.artist }));
+
+        // Fallback: If no tracks have fully completed yet, instantly show the most recently played unique tracks
+        if (scored.length === 0 && events.length > 0) {
+          const seen = new Set<string>();
+          const recent: { title: string; artist: string }[] = [];
+          for (const e of events) {
+            const key = `${e.title}|${e.artist}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              recent.push({ title: e.title, artist: e.artist });
+            }
+            if (recent.length >= n) break;
+          }
+          return recent;
+        }
+
+        return scored;
       },
 
       getRecentArtists: (n = 3) => {

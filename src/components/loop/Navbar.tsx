@@ -57,9 +57,19 @@ export function Navbar({
   );
 
   const intel = useListeningIntelligence();
-  const topGenre = intel.getTopGenres(1)[0] ?? "";
-  const vibeIcon = GENRE_ICONS[topGenre] ?? "🎵";
-  const moodBadge = topGenre ? `${vibeIcon} ${topGenre}` : "";
+  const identity = intel.getTasteIdentity();
+  
+  // Assign icons based on the identity string
+  let vibeIcon = "🎵";
+  if (identity.includes("Bollywood") || identity.includes("Desi")) vibeIcon = "🌊";
+  else if (identity.includes("Punjabi")) vibeIcon = "🌶️";
+  else if (identity.includes("Dark R&B") || identity.includes("Addict")) vibeIcon = "🖤";
+  else if (identity.includes("Sad Girl")) vibeIcon = "💧";
+  else if (identity.includes("Trap") || identity.includes("Drill")) vibeIcon = "🔥";
+  else if (identity.includes("Midnight") || identity.includes("Dreamer")) vibeIcon = "🌌";
+  else if (identity.includes("K-Pop") || identity.includes("Viral")) vibeIcon = "✨";
+  
+  const moodBadge = identity !== "New Explorer" ? `${vibeIcon} ${identity}` : "";
   const hasData = intel.events.length > 0;
   const { user } = useAuth();
   const { customAvatarUrl } = useUserProfile();
