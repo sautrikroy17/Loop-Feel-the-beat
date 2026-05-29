@@ -78,7 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Mobile viewport — prevents zoom on input focus, covers safe areas
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Loop — Feel the Waves" },
-      { name: "description", content: "Loop is a mood-driven music platform built for the next generation of listeners." },
+      {
+        name: "description",
+        content: "Loop is a mood-driven music platform built for the next generation of listeners.",
+      },
       { name: "author", content: "Loop" },
       // PWA theme color — matches app black background
       { name: "theme-color", content: "#000000" },
@@ -89,7 +92,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Loop" },
       // OG / Social
       { property: "og:title", content: "Loop — Feel the Waves" },
-      { property: "og:description", content: "A mood-driven music platform. Feel sound, don't just hear it." },
+      {
+        property: "og:description",
+        content: "A mood-driven music platform. Feel sound, don't just hear it.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -134,7 +140,33 @@ function RootComponent() {
 
   useEffect(() => {
     const unsubscribe = initAuthListener();
-    return () => unsubscribe();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input, textarea, or contenteditable element
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Spacebar to toggle play/pause
+      if (e.code === "Space") {
+        e.preventDefault(); // Prevent page scroll
+        import("@/hooks/usePlayback").then(({ usePlayback }) => {
+          usePlayback.getState().togglePlayPause();
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Register Service Worker for PWA (offline shell caching + Add to Home Screen)

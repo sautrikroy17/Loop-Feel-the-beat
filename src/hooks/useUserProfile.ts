@@ -11,18 +11,28 @@
  * Tables: run supabase/schema.sql in Supabase SQL Editor first.
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Track } from './usePlayback';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Track } from "./usePlayback";
 import {
-  fetchLikedSongs, insertLikedSong, deleteLikedSong,
-  fetchPlaylists, createPlaylistDB, updatePlaylistDB, deletePlaylistDB,
-  addTrackToPlaylistDB, removeTrackFromPlaylistDB,
-  fetchRecentlyPlayed, insertRecentlyPlayed,
-  fetchUserProfile, upsertUserProfile,
-  fetchSavedAlbums, insertSavedAlbum, deleteSavedAlbum,
-  type SavedAlbum
-} from '@/lib/supabase/db';
+  fetchLikedSongs,
+  insertLikedSong,
+  deleteLikedSong,
+  fetchPlaylists,
+  createPlaylistDB,
+  updatePlaylistDB,
+  deletePlaylistDB,
+  addTrackToPlaylistDB,
+  removeTrackFromPlaylistDB,
+  fetchRecentlyPlayed,
+  insertRecentlyPlayed,
+  fetchUserProfile,
+  upsertUserProfile,
+  fetchSavedAlbums,
+  insertSavedAlbum,
+  deleteSavedAlbum,
+  type SavedAlbum,
+} from "@/lib/supabase/db";
 
 export interface Playlist {
   id: string;
@@ -34,46 +44,46 @@ export interface Playlist {
 
 interface UserProfileState {
   // Data
-  likedTrackIds:   string[];
-  likedTracks:     Track[];
-  recentlyPlayed:  Track[];
-  playlists:       Playlist[];
-  savedAlbums:     SavedAlbum[];
+  likedTrackIds: string[];
+  likedTracks: Track[];
+  recentlyPlayed: Track[];
+  playlists: Playlist[];
+  savedAlbums: SavedAlbum[];
   customAvatarUrl: string | null;
 
   // Internal (not persisted — reset on every page load)
   _syncing: boolean;
 
   // Actions — userId is optional; pass it when user is logged in so data writes to Supabase
-  likeTrack:               (track: Track, userId?: string) => void;
-  unlikeTrack:             (id: string,   userId?: string) => void;
-  isLiked:                 (id: string) => boolean;
-  
-  saveAlbum:               (album: SavedAlbum, userId?: string) => void;
-  removeAlbum:             (albumId: string, userId?: string) => void;
-  isAlbumSaved:            (albumId: string) => boolean;
+  likeTrack: (track: Track, userId?: string) => void;
+  unlikeTrack: (id: string, userId?: string) => void;
+  isLiked: (id: string) => boolean;
 
-  addToRecentlyPlayed:     (track: Track, userId?: string) => void;
-  createPlaylist:          (name: string, coverArt?: string, userId?: string) => Playlist;
-  deletePlaylist:          (id: string,   userId?: string) => void;
-  addTrackToPlaylist:      (playlistId: string, track: Track, userId?: string) => void;
+  saveAlbum: (album: SavedAlbum, userId?: string) => void;
+  removeAlbum: (albumId: string, userId?: string) => void;
+  isAlbumSaved: (albumId: string) => boolean;
+
+  addToRecentlyPlayed: (track: Track, userId?: string) => void;
+  createPlaylist: (name: string, coverArt?: string, userId?: string) => Playlist;
+  deletePlaylist: (id: string, userId?: string) => void;
+  addTrackToPlaylist: (playlistId: string, track: Track, userId?: string) => void;
   removeTrackFromPlaylist: (playlistId: string, trackId: string, userId?: string) => void;
-  renamePlaylist:          (id: string, newName: string, userId?: string) => void;
-  updatePlaylistCover:     (id: string, coverArt: string, userId?: string) => void;
-  reorderPlaylist:         (id: string, startIndex: number, endIndex: number) => void;
-  clearHistory:            () => void;
+  renamePlaylist: (id: string, newName: string, userId?: string) => void;
+  updatePlaylistCover: (id: string, coverArt: string, userId?: string) => void;
+  reorderPlaylist: (id: string, startIndex: number, endIndex: number) => void;
+  clearHistory: () => void;
 
   // Avatar
-  setCustomAvatarUrl:      (url: string | null) => void;
+  setCustomAvatarUrl: (url: string | null) => void;
 
   // Cloud sync
-  loadFromCloud:   (userId: string, googleAvatarUrl?: string) => Promise<void>;
-  clearLocalData:  () => void;
+  loadFromCloud: (userId: string, googleAvatarUrl?: string) => Promise<void>;
+  clearLocalData: () => void;
 }
 
 // ── One-time migration: push existing localStorage → Supabase ──────────────
 
-const MIGRATION_PREFIX = 'loop-cloud-migrated-v1-';
+const MIGRATION_PREFIX = "loop-cloud-migrated-v1-";
 
 async function migrateLocalToCloud(
   userId: string,
@@ -84,20 +94,16 @@ async function migrateLocalToCloud(
   const key = `${MIGRATION_PREFIX}${userId}`;
   if (localStorage.getItem(key)) return; // Already done
 
-  console.log('[sync] First-time migration: pushing local data to Supabase…');
+  console.log("[sync] First-time migration: pushing local data to Supabase…");
 
   try {
     // Push liked songs (deduplicated by Supabase UNIQUE constraint)
-    const likedPromises = localLikedTracks.map((t) =>
-      insertLikedSong(userId, t).catch(() => {}),
-    );
+    const likedPromises = localLikedTracks.map((t) => insertLikedSong(userId, t).catch(() => {}));
 
     // Push playlists + their tracks
     const playlistPromises = localPlaylists.flatMap((pl) => [
       createPlaylistDB(userId, pl.id, pl.name, pl.coverArt).catch(() => {}),
-      ...pl.tracks.map((t, i) =>
-        addTrackToPlaylistDB(pl.id, t, i).catch(() => {}),
-      ),
+      ...pl.tracks.map((t, i) => addTrackToPlaylistDB(pl.id, t, i).catch(() => {})),
     ]);
 
     // Push recently played (newest first → play in reverse so newest ends on top)
@@ -108,10 +114,10 @@ async function migrateLocalToCloud(
 
     await Promise.all([...likedPromises, ...playlistPromises, ...recentPromises]);
 
-    localStorage.setItem(key, 'true');
-    console.log('[sync] Migration complete');
+    localStorage.setItem(key, "true");
+    console.log("[sync] Migration complete");
   } catch (err) {
-    console.error('[sync] Migration failed (will retry next login):', err);
+    console.error("[sync] Migration failed (will retry next login):", err);
   }
 }
 
@@ -120,13 +126,13 @@ async function migrateLocalToCloud(
 export const useUserProfile = create<UserProfileState>()(
   persist(
     (set, get) => ({
-      likedTrackIds:   [],
-      likedTracks:     [],
-      recentlyPlayed:  [],
-      playlists:       [],
-      savedAlbums:     [],
+      likedTrackIds: [],
+      likedTracks: [],
+      recentlyPlayed: [],
+      playlists: [],
+      savedAlbums: [],
       customAvatarUrl: null,
-      _syncing:        false,
+      _syncing: false,
 
       // ── Likes ────────────────────────────────────────────────────────
       likeTrack: (track, userId) => {
@@ -134,7 +140,7 @@ export const useUserProfile = create<UserProfileState>()(
           if (s.likedTrackIds.includes(track.id)) return s;
           return {
             likedTrackIds: [track.id, ...s.likedTrackIds],
-            likedTracks:   [track, ...s.likedTracks],
+            likedTracks: [track, ...s.likedTracks],
           };
         });
         if (userId) insertLikedSong(userId, track).catch(console.error);
@@ -143,7 +149,7 @@ export const useUserProfile = create<UserProfileState>()(
       unlikeTrack: (id, userId) => {
         set((s) => ({
           likedTrackIds: s.likedTrackIds.filter((i) => i !== id),
-          likedTracks:   s.likedTracks.filter((t) => t.id !== id),
+          likedTracks: s.likedTracks.filter((t) => t.id !== id),
         }));
         if (userId) deleteLikedSong(userId, id).catch(console.error);
       },
@@ -180,9 +186,9 @@ export const useUserProfile = create<UserProfileState>()(
       // ── Playlists ────────────────────────────────────────────────────
       createPlaylist: (name, coverArt, userId) => {
         const playlist: Playlist = {
-          id:        `pl_${Date.now()}`,
+          id: `pl_${Date.now()}`,
           name,
-          tracks:    [],
+          tracks: [],
           createdAt: Date.now(),
           ...(coverArt ? { coverArt } : {}),
         };
@@ -214,9 +220,7 @@ export const useUserProfile = create<UserProfileState>()(
       removeTrackFromPlaylist: (playlistId, trackId, userId) => {
         set((s) => ({
           playlists: s.playlists.map((p) =>
-            p.id === playlistId
-              ? { ...p, tracks: p.tracks.filter((t) => t.id !== trackId) }
-              : p,
+            p.id === playlistId ? { ...p, tracks: p.tracks.filter((t) => t.id !== trackId) } : p,
           ),
         }));
         if (userId) removeTrackFromPlaylistDB(playlistId, trackId).catch(console.error);
@@ -267,12 +271,7 @@ export const useUserProfile = create<UserProfileState>()(
           const s = get();
 
           // ── Step 1: migrate local → Supabase (one-time) ─────────────
-          await migrateLocalToCloud(
-            userId,
-            s.likedTracks,
-            s.playlists,
-            s.recentlyPlayed,
-          );
+          await migrateLocalToCloud(userId, s.likedTracks, s.playlists, s.recentlyPlayed);
 
           // ── Step 2: fetch fresh data from Supabase ───────────────────
           const [dbLiked, dbPlaylists, dbRecent, dbProfile, dbAlbums] = await Promise.all([
@@ -285,67 +284,66 @@ export const useUserProfile = create<UserProfileState>()(
 
           // Map cloud playlists to local Playlist shape
           const playlists: Playlist[] = dbPlaylists.map((p) => ({
-            id:        p.id,
-            name:      p.name,
-            tracks:    p.tracks,
+            id: p.id,
+            name: p.name,
+            tracks: p.tracks,
             createdAt: p.created_at,
-            coverArt:  p.cover_art,
+            coverArt: p.cover_art,
           }));
 
           // Avatar priority:
-          // 1. user_profiles.avatar_url (custom, cloud-synced)
-          // 2. Existing locally cached customAvatarUrl (survives if table is missing)
+          // 1. Existing locally cached customAvatarUrl (this is what the user just set, completely bulletproof)
+          // 2. user_profiles.avatar_url (cloud-synced for other devices)
           // 3. Google OAuth avatar
-          let avatarUrl: string | null = dbProfile?.avatar_url || s.customAvatarUrl || null;
+          let avatarUrl: string | null = s.customAvatarUrl || dbProfile?.avatar_url || null;
           if (!avatarUrl && googleAvatarUrl) {
-            // Seed Google avatar into user_profiles so other browsers get it too
             upsertUserProfile(userId, { avatar_url: googleAvatarUrl }).catch(() => {});
             avatarUrl = googleAvatarUrl;
           }
 
           set({
-            likedTracks:     dbLiked,
-            likedTrackIds:   dbLiked.map((t) => t.id),
+            likedTracks: dbLiked,
+            likedTrackIds: dbLiked.map((t) => t.id),
             playlists,
-            recentlyPlayed:  dbRecent.slice(0, 10),
-            savedAlbums:     dbAlbums,
+            recentlyPlayed: dbRecent.slice(0, 10),
+            savedAlbums: dbAlbums,
             customAvatarUrl: avatarUrl,
           });
 
           // Hydrate the local AI intelligence engine with cross-device cloud history
           if (dbRecent.length > 0) {
-            import('./useListeningIntelligence').then(({ useListeningIntelligence }) => {
+            import("./useListeningIntelligence").then(({ useListeningIntelligence }) => {
               useListeningIntelligence.getState().hydrateFromCloudHistory(dbRecent);
             });
           }
-
         } catch (err) {
-          console.error('[useUserProfile] loadFromCloud failed:', err);
+          console.error("[useUserProfile] loadFromCloud failed:", err);
         } finally {
           set({ _syncing: false });
         }
       },
 
       /** Clear local data on sign out */
-      clearLocalData: () => set({
-        likedTrackIds:   [],
-        likedTracks:     [],
-        recentlyPlayed:  [],
-        playlists:       [],
-        savedAlbums:     [],
-        customAvatarUrl: null,
-      }),
+      clearLocalData: () =>
+        set({
+          likedTrackIds: [],
+          likedTracks: [],
+          recentlyPlayed: [],
+          playlists: [],
+          savedAlbums: [],
+          customAvatarUrl: null,
+        }),
     }),
 
     {
-      name: 'loop-user-profile-v2',
+      name: "loop-user-profile-v2",
       // Do NOT persist _syncing — it should always start as false on page load
       partialize: (s) => ({
-        likedTrackIds:   s.likedTrackIds,
-        likedTracks:     s.likedTracks,
-        recentlyPlayed:  s.recentlyPlayed,
-        playlists:       s.playlists,
-        savedAlbums:     s.savedAlbums,
+        likedTrackIds: s.likedTrackIds,
+        likedTracks: s.likedTracks,
+        recentlyPlayed: s.recentlyPlayed,
+        playlists: s.playlists,
+        savedAlbums: s.savedAlbums,
         customAvatarUrl: s.customAvatarUrl,
         // _syncedUserId intentionally excluded — removed from v2
       }),
@@ -358,8 +356,8 @@ export const useUserProfile = create<UserProfileState>()(
  * Call once at app root.
  */
 export function initProfileSync() {
-  import('./usePlayback').then(({ usePlayback }) => {
-    import('@/hooks/useAuth').then(({ useAuth }) => {
+  import("./usePlayback").then(({ usePlayback }) => {
+    import("@/hooks/useAuth").then(({ useAuth }) => {
       let prevTrackId: string | undefined;
       usePlayback.subscribe((state) => {
         if (state.currentTrack && state.currentTrack.id !== prevTrackId) {
