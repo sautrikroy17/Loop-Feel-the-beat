@@ -191,6 +191,10 @@ export function LoopLogoCanvas({ size = 28 }: { size?: number }) {
     });
 
     function frame() {
+      if (document.hidden) {
+        rafId = requestAnimationFrame(frame);
+        return;
+      }
       ctx.clearRect(0, 0, W, H);
       t += 0.025;
 

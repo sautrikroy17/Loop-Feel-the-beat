@@ -136,6 +136,11 @@ function startRenderer(canvas: HTMLCanvasElement, palette: [RGB, RGB, RGB]) {
   ro.observe(canvas);
 
   function draw() {
+    if (document.hidden) {
+      rafId = requestAnimationFrame(draw);
+      return;
+    }
+
     const W = canvas.offsetWidth,
       H = canvas.offsetHeight;
     // FIX: Completely abort RAF loop when hidden! ResizeObserver will restart it.

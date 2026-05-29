@@ -45,25 +45,24 @@ export function Footer() {
           {/* Social links */}
           <div className="flex items-center gap-3">
             <a
-              href="https://www.instagram.com/__krishh17__/"
+              href="https://sautrikroy.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-white/35 transition-all hover:border-white/14 hover:bg-white/[0.07] hover:text-white/70"
-              aria-label="Instagram"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all hover:scale-110 hover:border-white/40 hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.25)]"
+              aria-label="Portfolio"
             >
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.8"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
             </a>
           </div>
