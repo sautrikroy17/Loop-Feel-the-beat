@@ -761,7 +761,7 @@ function PlaylistEditor({ playlistId, onBack }: { playlistId: string; onBack: ()
 
 function ProfileTab({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
-  const { recentlyPlayed, customAvatarUrl, setCustomAvatarUrl } = useUserProfile();
+  const { recentlyPlayed, likedTracks, playlists, customAvatarUrl, setCustomAvatarUrl } = useUserProfile();
   const { playTrack } = usePlayback();
   const { events, getTopGenres, getTasteIdentity } = useListeningIntelligence();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -784,14 +784,33 @@ function ProfileTab({ onClose }: { onClose: () => void }) {
     {} as Record<string, number>,
   );
 
-  // Build a map of trackId → full Track object from recentlyPlayed
-  const trackMap = recentlyPlayed.reduce(
+  // Build a map of trackId → full Track object from all known sources
+  const allKnownTracks = [
+    ...recentlyPlayed,
+    ...likedTracks,
+    ...playlists.flatMap((p) => p.tracks),
+  ];
+
+  const trackMap = allKnownTracks.reduce(
     (acc, t) => {
       if (!acc[t.id]) acc[t.id] = t;
       return acc;
     },
     {} as Record<string, (typeof recentlyPlayed)[0]>,
   );
+
+  // Fallback for events that are no longer in recent/liked/playlists
+  for (const e of events) {
+    if (!trackMap[e.trackId]) {
+      trackMap[e.trackId] = {
+        id: e.trackId,
+        title: e.title,
+        artist: e.artist,
+        albumArt: "",
+        durationMs: 0,
+      } as any;
+    }
+  }
 
   const topTracks =
     Object.keys(trackScores).length > 0
