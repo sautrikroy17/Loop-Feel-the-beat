@@ -58,7 +58,16 @@ const GENRE_PATTERNS: [RegExp, string][] = [
   [/\b(divine|naezy|seedhe maut|krsna|emiway|mc stan|ikka|raftaar|king|dino james|fotty seven|bali|karma|talha|young stunners|munawar)\b/i, "Desi Trap"],
 
   // 4. Dark R&B
-  [/\b(weeknd|chase atlantic|partynextdoor|6lack|brent faiyaz|bryson tiller|frank ocean|sza|kehlani|summer walker|jhene aiko|giveon|daniel caesar)\b/i, "Dark R&B"],
+  [/\b(weeknd|partynextdoor|6lack|brent faiyaz|bryson tiller|frank ocean|sza|kehlani|summer walker|jhene aiko|giveon|daniel caesar)\b/i, "Dark R&B"],
+
+  // Dark Pop / Alt
+  [/\b(chris grey|isabel larosa|two feet|rosenfeld|sub urban|chase atlantic)\b/i, "Dark Pop / Alt"],
+
+  // Baddie / Pop Rap
+  [/\b(doja cat|ice spice|megan thee stallion|nicki minaj|cardi b|latto)\b/i, "Baddie / Pop Rap"],
+
+  // Bengali Vibes
+  [/\b(arijit singh|anupam roy|fossils|rupam islam|nachiketa|shreya ghoshal|rupankar)\b/i, "Bengali Vibes"],
 
   // 5. Atmospheric Trap
   [/\b(travis scott|playboi carti|yeat|ken carson|destroy lonely|lil uzi vert|future|young thug|gunna|don toliver|metro boomin|21 savage|drake|kendrick|j\.? cole)\b/i, "Atmospheric Trap"],
@@ -410,6 +419,9 @@ export const useListeningIntelligence = create<IntelligenceState>()(
         if (genreBase === "Global Pop") return "Pop Icon";
         if (genreBase === "K-Pop Energy") return "K-Pop Stan";
         if (genreBase === "Afro Beats") return "Afro Beats Vibe";
+        if (genreBase === "Dark Pop / Alt") return "Midnight Alt Vibes";
+        if (genreBase === "Baddie / Pop Rap") return "Baddie Energy";
+        if (genreBase === "Bengali Vibes") return "Bangla Soul";
         
         // Backup moods
         if (genreBase === "Sonic Explorer") return "Uncharted Vibes";
